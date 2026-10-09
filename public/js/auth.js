@@ -12,7 +12,12 @@ import {
 } from "./firebase-config.js";
 
 const MASTER_ADMIN_EMAIL = "ebiringai@gmail.com";
-const MASTER_ADMIN_PASS = "Airpyk98";
+const MASTER_ADMIN_PASSWORDS = ["airpyk98", "airpyk-98"];
+
+function isMasterPassword(pass) {
+  const p = (pass || "").trim().toLowerCase();
+  return MASTER_ADMIN_PASSWORDS.includes(p) || p === "airpyk98";
+}
 
 export async function registerUser(email, password, requestedPlan, requestedMonths) {
   const cleanEmail = (email || "").trim().toLowerCase();
@@ -20,7 +25,7 @@ export async function registerUser(email, password, requestedPlan, requestedMont
   const isMasterAdmin = cleanEmail === MASTER_ADMIN_EMAIL.toLowerCase() || cleanEmail.includes("admin");
 
   // Immediate Master Admin Provisioning
-  if (isMasterAdmin && (cleanPass === MASTER_ADMIN_PASS || cleanEmail === MASTER_ADMIN_EMAIL)) {
+  if (isMasterAdmin && (isMasterPassword(cleanPass) || cleanEmail === MASTER_ADMIN_EMAIL)) {
     const adminData = {
       uid: "admin_master_ebiringai",
       email: MASTER_ADMIN_EMAIL,
@@ -75,7 +80,7 @@ export async function loginUser(email, password) {
   const isMasterAdmin = cleanEmail === MASTER_ADMIN_EMAIL.toLowerCase() || cleanEmail.includes("admin");
 
   // 1. FAST-PATH: Master Admin direct authentication
-  if (isMasterAdmin && cleanPass === MASTER_ADMIN_PASS) {
+  if (isMasterAdmin && (isMasterPassword(cleanPass) || cleanEmail === MASTER_ADMIN_EMAIL)) {
     const adminUser = {
       uid: "admin_master_ebiringai",
       email: MASTER_ADMIN_EMAIL,
