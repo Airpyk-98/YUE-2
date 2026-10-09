@@ -70,11 +70,17 @@
 - [x] Built dynamic subtab generator for manual lyrics editing.
 - [x] Implemented "Get Video" feature integrating Krea.ai models (Nano Banana, SeedDream, ChatGPTS) with FFmpeg static looping.
 - [x] Built Kaggle T4 worker script (`kaggle/yue_executor.py`) with Firestore milestone sync and cancellation watchdog.
-- [x] Wrote Firestore security rules (`firestore.rules`) and Firebase Hosting config (`firebase.json`).
+- [x] Added `kaggle/dispatch_worker.py` for automated kernel configuration and submission.
+- [x] **Full 90+ NVIDIA NIM Model Catalog**: Extracted all 80 active models directly from NVIDIA NIM API and added 11 flagship community models into `VERIFIED_NVIDIA_MODELS`. Models populate immediately on settings load and via the loader button with graceful fallback preventing CORS errors.
+- [x] **In-App Kaggle & HF Credential Management**: Added dedicated input cards in `settings.html` for Kaggle Username, Kaggle API Token/Key, Hugging Face Token, and Dataset Repository. Credential values are persisted in Firestore `/users/{uid}/config/settings` and `localStorage`.
+- [x] **Dashboard Notice**: Implemented an automated banner in `dashboard.html` prompting users to set up Kaggle credentials if they haven't configured them yet.
+- [x] Deployed live to Firebase Hosting: `https://epic-music-98.web.app`.
+- [x] Synced code to GitHub repository `https://github.com/Airpyk-98/YUE-2.git`.
 
 ---
 
 ## 5. Instructions for Next Agent
-1. To test the frontend locally: Run `npx serve public` or deploy with `firebase deploy`.
-2. To test Kaggle worker: Set `FIREBASE_PROJECT_ID` and `JOB_ID` environment variables and run `python kaggle/yue_executor.py`.
-3. Keep this `handoff.md` continuously updated as new features or model weights are added.
+1. To view the live app: Open `https://epic-music-98.web.app`.
+2. Master Admin Account: `ebiringai@gmail.com` / `Airpyk98`.
+3. To test Kaggle worker locally or on a remote machine: Run `python kaggle/dispatch_worker.py <kaggle_username> <kaggle_key>`.
+4. Keep this `handoff.md` continuously updated as new features or model weights are added.
