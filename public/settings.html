@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Studio Settings | YuE-2 AI Platform</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="dashboard.html" class="brand">
+      <div class="brand-icon">🎵</div>
+      <div>
+        <h1>YuE-2 Studio</h1>
+        <p class="subtitle" style="font-size:11px; color:var(--text-muted);">AI Music & Video Generation</p>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="dashboard.html" class="nav-link">Studio Dashboard</a>
+      <a href="settings.html" class="nav-link active">Settings</a>
+      <span id="userPlanBadge" class="plan-pill plan-base">Base</span>
+      <button id="btnLogout" class="btn btn-outline btn-sm">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="container" style="max-width: 900px;">
+    <div style="margin-bottom: 24px;">
+      <h2>⚙️ Studio Settings & AI Configurations</h2>
+      <p style="color: var(--text-muted); font-size: 14px;">
+        Configure your NVIDIA NIM Script Generator, customize the YuE-specific prompting format, and set up your Krea.ai image model.
+      </p>
+    </div>
+
+    <!-- Alert Box -->
+    <div id="settingsAlert" style="display:none; padding:12px 16px; border-radius:8px; margin-bottom:20px; font-size:14px;"></div>
+
+    <form id="settingsForm">
+      <!-- Section 1: NVIDIA AI Script & Lyrics Generator -->
+      <div class="card" style="margin-bottom: 24px;">
+        <div class="card-header">
+          <div class="card-title">🤖 NVIDIA LLM Script Generator (OpenAI-Compatible)</div>
+          <p class="card-desc">Translates user titles and conversational descriptions into structured YuE-formatted lyrics and genre tags.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="nvidiaBaseUrl">NVIDIA API Base URL</label>
+            <input type="text" id="nvidiaBaseUrl" class="form-input" placeholder="https://integrate.api.nvidia.com/v1" required>
+            <span style="font-size:11px; color:var(--text-muted);">Defaults to NVIDIA free NIM endpoint. Compatible with any OpenAI endpoint.</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="nvidiaApiKey">NVIDIA API Key</label>
+            <input type="password" id="nvidiaApiKey" class="form-input" placeholder="nvapi-...">
+            <span style="font-size:11px; color:var(--text-muted);">Get free API credits at <a href="https://build.nvidia.com" target="_blank" style="color:var(--accent-color);">build.nvidia.com</a></span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div style="display: flex; gap: 12px; align-items: flex-end;">
+            <div style="flex: 1;">
+              <label class="form-label" for="nvidiaModelSelect">Selected Script Generator Model</label>
+              <select id="nvidiaModelSelect" class="form-select">
+                <option value="meta/llama-3.3-70b-instruct">meta/llama-3.3-70b-instruct (Recommended)</option>
+                <option value="mistralai/mixtral-8x22b-instruct">mistralai/mixtral-8x22b-instruct</option>
+                <option value="nvidia/llama-3.1-nemotron-70b-instruct">nvidia/llama-3.1-nemotron-70b-instruct</option>
+              </select>
+            </div>
+            <button type="button" id="btnLoadNvidiaModels" class="btn btn-secondary" style="height: 42px;">
+              🔄 Load NVIDIA Models
+            </button>
+          </div>
+        </div>
+
+        <!-- Customizable System Prompt -->
+        <div class="form-group" style="margin-top: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="form-label" for="systemPrompt" style="margin-bottom:0;">
+              YuE Custom System Prompt (Editable)
+            </label>
+            <button type="button" id="btnResetPrompt" class="btn btn-outline btn-sm">
+              ↩️ Reset to Default Prompt
+            </button>
+          </div>
+          <textarea id="systemPrompt" class="form-textarea" rows="8"></textarea>
+          <span style="font-size:11px; color:var(--text-muted);">
+            This prompt instructs the LLM to format the genres and lyrics into the exact <code>[verse]</code>, <code>[chorus]</code>, <code>[bridge]</code> structure required by the YuE model.
+          </span>
+        </div>
+      </div>
+
+      <!-- Section 2: Krea.ai Image & Video Overlay Engine -->
+      <div class="card" style="margin-bottom: 24px;">
+        <div class="card-header">
+          <div class="card-title">🎨 Krea.ai Image Model Engine ("Get Video" Feature)</div>
+          <p class="card-desc">Generates the thematic overlay image used by FFmpeg to produce a full static-frame MP4 music video.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="kreaApiKey">Krea.ai API Token</label>
+            <input type="password" id="kreaApiKey" class="form-input" placeholder="Bearer token from krea.ai/settings/api-tokens">
+            <span style="font-size:11px; color:var(--text-muted);">Obtain from <a href="https://krea.ai/settings/api-tokens" target="_blank" style="color:var(--accent-color);">krea.ai/settings/api-tokens</a></span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="kreaAspectRatio">Video Aspect Ratio</label>
+            <select id="kreaAspectRatio" class="form-select">
+              <option value="16:9">16:9 (Landscape YouTube Standard)</option>
+              <option value="1:1">1:1 (Square Album Art)</option>
+              <option value="9:16">9:16 (Vertical Shorts / Reels / TikTok)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="kreaModelSelect">Preferred Krea Image Model</label>
+          <select id="kreaModelSelect" class="form-select">
+            <optgroup label="Nano Banana Models">
+              <option value="nano-banana-pro" selected>Nano Banana Pro (High Resolution & Precision)</option>
+              <option value="nano-banana-2">Nano Banana 2 (Google SOTA)</option>
+              <option value="nano-banana-2-1">Nano Banana 2.1 (Enhanced Realism)</option>
+            </optgroup>
+            <optgroup label="ChatGPTS Models">
+              <option value="chatgpt-2-image">ChatGPT 2 Image Generator (Stylized)</option>
+              <option value="chatgpts-turbo">ChatGPTS Turbo (Fast Concept Art)</option>
+            </optgroup>
+            <optgroup label="SeedDream Models">
+              <option value="seedream-4-0">SeedDream 4.0 (ByteDance Visual SOTA)</option>
+              <option value="seedream-4-5">SeedDream 4.5 (High Dynamic Range)</option>
+              <option value="seedream-5-0-pro">SeedDream 5.0 Pro (Photorealistic Master)</option>
+            </optgroup>
+            <optgroup label="Krea 2 Models">
+              <option value="krea-2-large">Krea 2 Large (Raw Photorealism)</option>
+              <option value="krea-2-medium">Krea 2 Medium (Balanced)</option>
+              <option value="krea-2-medium-turbo">Krea 2 Medium Turbo (High Speed)</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 12px;">
+        <a href="dashboard.html" class="btn btn-secondary">Back to Dashboard</a>
+        <button type="submit" id="btnSaveSettings" class="btn btn-primary">
+          💾 Save Settings & Configurations
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <script type="module">
+    import { enforceUserAuth, logoutUser } from "./js/auth.js";
+    import { 
+      loadUserSettings, 
+      saveUserSettings, 
+      fetchNvidiaModels, 
+      DEFAULT_NVIDIA_BASE_URL, 
+      DEFAULT_YUE_SYSTEM_PROMPT 
+    } from "./js/settings.js";
+
+    let currentUser = null;
+
+    document.getElementById("btnLogout").addEventListener("click", logoutUser);
+
+    enforceUserAuth().then(async (user) => {
+      currentUser = user;
+      const planBadge = document.getElementById("userPlanBadge");
+      planBadge.textContent = (user.approved_plan || user.role).toUpperCase();
+      planBadge.className = `plan-pill plan-${user.approved_plan || user.role}`;
+
+      const settings = await loadUserSettings(user.uid);
+      document.getElementById("nvidiaBaseUrl").value = settings.nvidia_base_url || DEFAULT_NVIDIA_BASE_URL;
+      document.getElementById("nvidiaApiKey").value = settings.nvidia_api_key || "";
+      document.getElementById("systemPrompt").value = settings.system_prompt || DEFAULT_YUE_SYSTEM_PROMPT;
+      document.getElementById("kreaApiKey").value = settings.krea_api_key || "";
+      document.getElementById("kreaAspectRatio").value = settings.krea_aspect_ratio || "16:9";
+
+      if (settings.krea_model) {
+        document.getElementById("kreaModelSelect").value = settings.krea_model;
+      }
+
+      if (settings.nvidia_model) {
+        const sel = document.getElementById("nvidiaModelSelect");
+        let exists = Array.from(sel.options).some(o => o.value === settings.nvidia_model);
+        if (!exists) {
+          const opt = document.createElement("option");
+          opt.value = settings.nvidia_model;
+          opt.textContent = settings.nvidia_model;
+          sel.appendChild(opt);
+        }
+        sel.value = settings.nvidia_model;
+      }
+    });
+
+    document.getElementById("btnResetPrompt").addEventListener("click", () => {
+      if (confirm("Reset system prompt to default YuE specification?")) {
+        document.getElementById("systemPrompt").value = DEFAULT_YUE_SYSTEM_PROMPT;
+      }
+    });
+
+    document.getElementById("btnLoadNvidiaModels").addEventListener("click", async () => {
+      const btn = document.getElementById("btnLoadNvidiaModels");
+      const baseUrl = document.getElementById("nvidiaBaseUrl").value.trim();
+      const apiKey = document.getElementById("nvidiaApiKey").value.trim();
+      const alertBox = document.getElementById("settingsAlert");
+
+      if (!apiKey) {
+        alert("Please enter your NVIDIA API Key first.");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Loading Models...";
+
+      try {
+        const models = await fetchNvidiaModels(baseUrl, apiKey);
+        const sel = document.getElementById("nvidiaModelSelect");
+        sel.innerHTML = "";
+        models.forEach(m => {
+          const opt = document.createElement("option");
+          opt.value = m;
+          opt.textContent = m;
+          sel.appendChild(opt);
+        });
+        alertBox.style.display = "block";
+        alertBox.style.background = "#052e16";
+        alertBox.style.color = "#86efac";
+        alertBox.textContent = `Successfully loaded ${models.length} models from NVIDIA NIM!`;
+      } catch (err) {
+        alertBox.style.display = "block";
+        alertBox.style.background = "#450a0a";
+        alertBox.style.color = "#fca5a5";
+        alertBox.textContent = `Error loading models: ${err.message}`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "🔄 Load NVIDIA Models";
+      }
+    });
+
+    document.getElementById("settingsForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const alertBox = document.getElementById("settingsAlert");
+      const btn = document.getElementById("btnSaveSettings");
+      btn.disabled = true;
+      btn.textContent = "Saving...";
+
+      const newSettings = {
+        nvidia_base_url: document.getElementById("nvidiaBaseUrl").value.trim(),
+        nvidia_api_key: document.getElementById("nvidiaApiKey").value.trim(),
+        nvidia_model: document.getElementById("nvidiaModelSelect").value,
+        system_prompt: document.getElementById("systemPrompt").value,
+        krea_api_key: document.getElementById("kreaApiKey").value.trim(),
+        krea_model: document.getElementById("kreaModelSelect").value,
+        krea_aspect_ratio: document.getElementById("kreaAspectRatio").value
+      };
+
+      await saveUserSettings(currentUser.uid, newSettings);
+
+      btn.disabled = false;
+      btn.textContent = "💾 Save Settings & Configurations";
+      alertBox.style.display = "block";
+      alertBox.style.background = "#052e16";
+      alertBox.style.color = "#86efac";
+      alertBox.textContent = "Settings successfully saved to your profile!";
+      setTimeout(() => { alertBox.style.display = "none"; }, 3000);
+    });
+  </script>
+</body>
+</html>

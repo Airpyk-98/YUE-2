@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YuE-2 Studio Dashboard | AI Music & Video Automation</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="dashboard.html" class="brand">
+      <div class="brand-icon">🎵</div>
+      <div>
+        <h1>YuE-2 Studio</h1>
+        <p class="subtitle" style="font-size:11px; color:var(--text-muted);">Open-Source Full-Song Synthesis Engine</p>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="dashboard.html" class="nav-link active">Studio Dashboard</a>
+      <a href="settings.html" class="nav-link">Settings</a>
+      <a href="admin.html" id="navAdminLink" class="nav-link" style="display:none;">Admin</a>
+      <div class="user-badge">
+        <span id="userEmailSpan">user@example.com</span>
+        <span id="userPlanBadge" class="plan-pill plan-base">BASE</span>
+      </div>
+      <button id="btnLogout" class="btn btn-outline btn-sm">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:24px;">
+      <div>
+        <h2>🎧 Music & Video Generation Center</h2>
+        <p style="color:var(--text-muted); font-size:14px;">
+          Create single tracks or trigger batch automations on Kaggle's T4 GPU servers. Close your laptop anytime!
+        </p>
+      </div>
+      <div id="planUpgradeBanner" style="display:none; font-size:12px; background:#1e293b; padding:6px 12px; border-radius:8px; border:1px solid #334155;">
+        ⭐ You are on the <strong>Base Plan</strong>. Contact admin to unlock <strong>Advanced Batch Mode</strong>.
+      </div>
+    </div>
+
+    <!-- Tier Switcher (For Advanced / Admin users) -->
+    <div id="tierSwitcher" style="display:none; margin-bottom: 20px;">
+      <div style="display:flex; gap:10px;">
+        <button id="btnSwitchSingle" class="btn btn-primary btn-sm">Single Song Mode</button>
+        <button id="btnSwitchBatch" class="btn btn-outline btn-sm">Batch Multi-Title Studio</button>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Left Column: Generator Studio -->
+      <section class="card">
+        <!-- SINGLE SONG MODE -->
+        <div id="singleModeContainer">
+          <div class="card-header">
+            <div class="card-title">🎼 Single Song Synthesis</div>
+            <p class="card-desc">Generate one full-length song or music video at a time.</p>
+          </div>
+
+          <form id="singleForm">
+            <div class="form-group">
+              <label class="form-label" for="singleTitle">Song Title</label>
+              <input type="text" id="singleTitle" class="form-input" placeholder="e.g. Neon Horizon" required>
+            </div>
+
+            <!-- Auto AI vs Manual Toggle -->
+            <div class="toggle-wrapper">
+              <div class="toggle-info">
+                <h4>Auto AI Lyrics & Genre Generator</h4>
+                <p>NVIDIA LLM writes formatted lyrics & genre from your description</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="singleAutoAiToggle" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <!-- Description (When Auto AI is ON) -->
+            <div class="form-group" id="singleDescGroup">
+              <label class="form-label" for="singleDesc">Song Concept & Vibe Description</label>
+              <textarea id="singleDesc" class="form-textarea" rows="3" placeholder="e.g. An energetic 80s synthwave anthem about speeding through neon rain, uplifting male vocals, driving synth bass, 128bpm"></textarea>
+            </div>
+
+            <!-- Manual Fields (When Auto AI is OFF) -->
+            <div id="singleManualGroup" style="display: none;">
+              <div class="form-group">
+                <label class="form-label" for="singleGenre">Genre Prompt Stack (5-10 comma-separated tags)</label>
+                <input type="text" id="singleGenre" class="form-input" placeholder="e.g. synthwave, driving electro, male vocals, bright synthesizer, 128bpm">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="singleLyrics">Structured Lyrics</label>
+                <textarea id="singleLyrics" class="form-textarea" rows="6" placeholder="[verse]&#10;Lines of verse 1...&#10;&#10;[chorus]&#10;Chorus hook...&#10;&#10;[bridge]&#10;Bridge line..."></textarea>
+              </div>
+            </div>
+
+            <!-- Get Video Toggle -->
+            <div class="toggle-wrapper">
+              <div class="toggle-info">
+                <h4>Get Video (Krea.ai Image Overlay)</h4>
+                <p>Generates an image via Krea.ai and stitches an MP4 video with FFmpeg</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="singleGetVideo">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <button type="submit" id="btnLaunchSingle" class="btn btn-primary" style="width: 100%;">
+              🚀 Launch Single Track on Kaggle T4
+            </button>
+          </form>
+        </div>
+
+        <!-- BATCH MULTI-TITLE STUDIO (For Advanced users) -->
+        <div id="batchModeContainer" style="display: none;">
+          <div class="card-header">
+            <div class="card-title">⚡ Batch Multi-Title Automation</div>
+            <p class="card-desc">Automate multiple songs at once with individual subtabs or conversational AI prompting.</p>
+          </div>
+
+          <form id="batchForm">
+            <div class="form-group">
+              <label class="form-label" for="batchTitles">Song Titles (One Per Line)</label>
+              <textarea id="batchTitles" class="form-textarea" rows="4" placeholder="Summer Echoes&#10;Midnight Run&#10;Electric Rain&#10;Golden Hour" required></textarea>
+              <span style="font-size:11px; color:var(--text-muted);">Each line represents a distinct song to be synthesized.</span>
+            </div>
+
+            <!-- Genre Handling Toggle -->
+            <div class="toggle-wrapper">
+              <div class="toggle-info">
+                <h4>Single Genre for All Titles</h4>
+                <p>Apply one shared genre prompt across all batch songs</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="batchSharedGenreToggle">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <!-- Shared Genre Field -->
+            <div class="form-group" id="batchSharedGenreGroup" style="display: none;">
+              <label class="form-label" for="batchSharedGenre">Shared Genre Prompt Stack</label>
+              <input type="text" id="batchSharedGenre" class="form-input" placeholder="e.g. ambient lofi chillhop, warm rhodes piano, vinyl crackle, 85bpm">
+            </div>
+
+            <!-- Auto AI Script Generator Toggle -->
+            <div class="toggle-wrapper">
+              <div class="toggle-info">
+                <h4>Auto AI Script Generator (Conversational Mode)</h4>
+                <p>Chat with NVIDIA AI to describe individual song directions</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="batchAutoAiToggle" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <!-- Conversational AI Description Box -->
+            <div class="form-group" id="batchConversationalGroup">
+              <label class="form-label" for="batchConversationalPrompt">Conversational Batch Prompt</label>
+              <textarea id="batchConversationalPrompt" class="form-textarea" rows="4" placeholder="Describe the direction for each title, e.g.:&#10;For 'Summer Echoes', make it an acoustic beach folk song with female vocals.&#10;For 'Midnight Run', make it an aggressive cyberpunk techno song with heavy bass."></textarea>
+            </div>
+
+            <!-- Dynamic Subtabs Container (When Auto AI is OFF) -->
+            <div id="batchManualSubtabsSection" style="display: none; margin-top: 16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <label class="form-label" style="margin-bottom:0;">Configure Subtabs for Each Title</label>
+                <button type="button" id="btnBuildSubtabs" class="btn btn-secondary btn-sm">Build / Refresh Subtabs</button>
+              </div>
+              <div class="subtabs-bar" id="subtabsBar"></div>
+              <div id="subtabsPanels"></div>
+            </div>
+
+            <!-- Get Video Toggle -->
+            <div class="toggle-wrapper" style="margin-top: 16px;">
+              <div class="toggle-info">
+                <h4>Get Video (Batch Image Overlays)</h4>
+                <p>Generate Krea.ai images and produce MP4 videos for every song</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="batchGetVideo">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <button type="submit" id="btnLaunchBatch" class="btn btn-primary" style="width: 100%;">
+              ⚡ Launch Batch Automation on Kaggle T4
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Real-Time Execution Monitor & Media Preview -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">📡 Real-Time Execution Monitor</div>
+          <p class="card-desc">Live milestone updates synced from Kaggle. You can safely close this window.</p>
+        </div>
+
+        <div class="progress-box">
+          <div class="progress-header">
+            <span id="milestoneLabel" style="font-weight: 500;">Ready for generation</span>
+            <span id="progressPercentage" style="font-weight: 700; color: var(--accent-color);">0%</span>
+          </div>
+          <div class="progress-track">
+            <div id="progressBar" class="progress-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 12px; font-weight: 600; color: var(--text-muted);">LIVE EXECUTION TRANSCRIPT</span>
+          <button id="btnCancelJob" class="btn btn-danger btn-sm" disabled>⏹ Cancel Job</button>
+        </div>
+
+        <div class="terminal-box" id="terminalBox">
+          <div class="log-line system">[System] Connected to Firestore milestone stream.</div>
+        </div>
+
+        <!-- Generated Asset Preview Area -->
+        <div id="mediaOutputSection" class="media-card" style="display: none;">
+          <h3 style="font-size: 16px; margin-bottom: 6px;">🎉 Generation Complete!</h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Asset permanently archived in Hugging Face Datasets.</p>
+          
+          <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+            <input type="text" id="outputAssetUrl" class="form-input" style="font-family:monospace; font-size:12px;" readonly>
+            <button id="btnCopyAssetUrl" class="btn btn-secondary btn-sm" style="white-space:nowrap;">📋 Copy Link</button>
+          </div>
+
+          <div class="media-player-wrapper">
+            <video id="webVideoPlayer" controls style="display:none; border-radius:8px;"></video>
+            <audio id="webAudioPlayer" controls style="display:none; width:100%;"></audio>
+          </div>
+
+          <div id="batchMediaList" style="margin-top: 12px; display: none;"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script type="module">
+    import { enforceUserAuth, logoutUser } from "./js/auth.js";
+    import { dispatchAutomationJob, requestJobCancellation, attachJobMonitor } from "./js/generator.js";
+
+    let currentUser = null;
+    let activeJobId = null;
+
+    document.getElementById("btnLogout").addEventListener("click", logoutUser);
+
+    enforceUserAuth().then((user) => {
+      currentUser = user;
+      document.getElementById("userEmailSpan").textContent = user.email;
+      
+      const userPlan = user.approved_plan || user.role;
+      const planBadge = document.getElementById("userPlanBadge");
+      planBadge.textContent = userPlan.toUpperCase();
+      planBadge.className = `plan-pill plan-${userPlan}`;
+
+      if (user.role === "admin") {
+        document.getElementById("navAdminLink").style.display = "inline-block";
+      }
+
+      if (userPlan === "advanced" || user.role === "admin") {
+        document.getElementById("tierSwitcher").style.display = "block";
+      } else {
+        document.getElementById("planUpgradeBanner").style.display = "block";
+      }
+
+      // Check if user has an active or recent job in localStorage
+      const cachedJob = localStorage.getItem("yue_active_job_" + user.uid);
+      if (cachedJob) {
+        monitorJob(cachedJob);
+      }
+    });
+
+    // Tier Switching Handlers
+    const btnSwitchSingle = document.getElementById("btnSwitchSingle");
+    const btnSwitchBatch = document.getElementById("btnSwitchBatch");
+    const singleContainer = document.getElementById("singleModeContainer");
+    const batchContainer = document.getElementById("batchModeContainer");
+
+    btnSwitchSingle.addEventListener("click", () => {
+      btnSwitchSingle.className = "btn btn-primary btn-sm";
+      btnSwitchBatch.className = "btn btn-outline btn-sm";
+      singleContainer.style.display = "block";
+      batchContainer.style.display = "none";
+    });
+
+    btnSwitchBatch.addEventListener("click", () => {
+      btnSwitchBatch.className = "btn btn-primary btn-sm";
+      btnSwitchSingle.className = "btn btn-outline btn-sm";
+      batchContainer.style.display = "block";
+      singleContainer.style.display = "none";
+    });
+
+    // Single Mode Auto AI Toggle
+    const singleAutoAiToggle = document.getElementById("singleAutoAiToggle");
+    const singleDescGroup = document.getElementById("singleDescGroup");
+    const singleManualGroup = document.getElementById("singleManualGroup");
+
+    singleAutoAiToggle.addEventListener("change", () => {
+      if (singleAutoAiToggle.checked) {
+        singleDescGroup.style.display = "block";
+        singleManualGroup.style.display = "none";
+      } else {
+        singleDescGroup.style.display = "none";
+        singleManualGroup.style.display = "block";
+      }
+    });
+
+    // Batch Mode Toggles
+    const batchSharedGenreToggle = document.getElementById("batchSharedGenreToggle");
+    const batchSharedGenreGroup = document.getElementById("batchSharedGenreGroup");
+    batchSharedGenreToggle.addEventListener("change", () => {
+      batchSharedGenreGroup.style.display = batchSharedGenreToggle.checked ? "block" : "none";
+    });
+
+    const batchAutoAiToggle = document.getElementById("batchAutoAiToggle");
+    const batchConversationalGroup = document.getElementById("batchConversationalGroup");
+    const batchManualSubtabsSection = document.getElementById("batchManualSubtabsSection");
+
+    batchAutoAiToggle.addEventListener("change", () => {
+      if (batchAutoAiToggle.checked) {
+        batchConversationalGroup.style.display = "block";
+        batchManualSubtabsSection.style.display = "none";
+      } else {
+        batchConversationalGroup.style.display = "none";
+        batchManualSubtabsSection.style.display = "block";
+        buildSubtabs();
+      }
+    });
+
+    // Build Subtabs
+    document.getElementById("btnBuildSubtabs").addEventListener("click", buildSubtabs);
+
+    function buildSubtabs() {
+      const titles = document.getElementById("batchTitles").value
+        .split("\n")
+        .map(t => t.trim())
+        .filter(t => t.length > 0);
+
+      const subtabsBar = document.getElementById("subtabsBar");
+      const subtabsPanels = document.getElementById("subtabsPanels");
+      subtabsBar.innerHTML = "";
+      subtabsPanels.innerHTML = "";
+
+      if (titles.length === 0) {
+        subtabsPanels.innerHTML = `<p style="font-size:12px; color:var(--text-muted);">Please enter one or more titles above first.</p>`;
+        return;
+      }
+
+      const isSharedGenre = document.getElementById("batchSharedGenreToggle").checked;
+
+      titles.forEach((title, index) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `subtab-btn ${index === 0 ? 'active' : ''}`;
+        btn.textContent = title;
+        btn.dataset.index = index;
+        btn.addEventListener("click", () => switchSubtab(index));
+        subtabsBar.appendChild(btn);
+
+        const panel = document.createElement("div");
+        panel.className = `subtab-panel ${index === 0 ? 'active' : ''}`;
+        panel.id = `panel_${index}`;
+        panel.innerHTML = `
+          <h4 style="font-size:14px; margin-bottom:8px; color:var(--accent-color);">${title}</h4>
+          ${!isSharedGenre ? `
+            <div class="form-group">
+              <label class="form-label">Genre Prompt Stack</label>
+              <input type="text" id="genre_${index}" class="form-input" placeholder="e.g. acoustic folk, female vocals, warm guitar, 110bpm">
+            </div>
+          ` : ''}
+          <div class="form-group">
+            <label class="form-label">Full Lyrics</label>
+            <textarea id="lyrics_${index}" class="form-textarea" rows="5" placeholder="[verse]&#10;Verse lines...&#10;&#10;[chorus]&#10;Chorus hook..."></textarea>
+          </div>
+        `;
+        subtabsPanels.appendChild(panel);
+      });
+    }
+
+    function switchSubtab(idx) {
+      document.querySelectorAll(".subtab-btn").forEach(b => {
+        b.classList.toggle("active", parseInt(b.dataset.index) === idx);
+      });
+      document.querySelectorAll(".subtab-panel").forEach((p, i) => {
+        p.classList.toggle("active", i === idx);
+      });
+    }
+
+    // Launch Single Song Handler
+    document.getElementById("singleForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("btnLaunchSingle");
+      btn.disabled = true;
+      btn.textContent = "Launching Single Track...";
+
+      const isAuto = singleAutoAiToggle.checked;
+      const payload = {
+        mode: "base",
+        get_video: document.getElementById("singleGetVideo").checked,
+        items: [{
+          title: document.getElementById("singleTitle").value.trim(),
+          auto_ai: isAuto,
+          description: isAuto ? document.getElementById("singleDesc").value.trim() : "",
+          genre: !isAuto ? document.getElementById("singleGenre").value.trim() : "",
+          lyrics: !isAuto ? document.getElementById("singleLyrics").value.trim() : ""
+        }]
+      };
+
+      try {
+        const jobId = await dispatchAutomationJob(currentUser, payload);
+        localStorage.setItem("yue_active_job_" + currentUser.uid, jobId);
+        monitorJob(jobId);
+      } catch (err) {
+        alert("Failed to dispatch job: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "🚀 Launch Single Track on Kaggle T4";
+      }
+    });
+
+    // Launch Batch Studio Handler
+    document.getElementById("batchForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("btnLaunchBatch");
+      btn.disabled = true;
+      btn.textContent = "Launching Batch Jobs...";
+
+      const titles = document.getElementById("batchTitles").value
+        .split("\n")
+        .map(t => t.trim())
+        .filter(t => t.length > 0);
+
+      const isAuto = batchAutoAiToggle.checked;
+      const isSharedGenre = batchSharedGenreToggle.checked;
+      const sharedGenre = document.getElementById("batchSharedGenre").value.trim();
+      const conversationalPrompt = document.getElementById("batchConversationalPrompt").value.trim();
+
+      const items = titles.map((title, idx) => {
+        if (isAuto) {
+          return {
+            title: title,
+            auto_ai: true,
+            conversational_prompt: conversationalPrompt,
+            genre: isSharedGenre ? sharedGenre : ""
+          };
+        } else {
+          const gEl = document.getElementById(`genre_${idx}`);
+          const lEl = document.getElementById(`lyrics_${idx}`);
+          return {
+            title: title,
+            auto_ai: false,
+            genre: isSharedGenre ? sharedGenre : (gEl ? gEl.value.trim() : ""),
+            lyrics: lEl ? lEl.value.trim() : ""
+          };
+        }
+      });
+
+      const payload = {
+        mode: "batch",
+        get_video: document.getElementById("batchGetVideo").checked,
+        items: items
+      };
+
+      try {
+        const jobId = await dispatchAutomationJob(currentUser, payload);
+        localStorage.setItem("yue_active_job_" + currentUser.uid, jobId);
+        monitorJob(jobId);
+      } catch (err) {
+        alert("Failed to dispatch batch: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "⚡ Launch Batch Automation on Kaggle T4";
+      }
+    });
+
+    // Monitor Job
+    function monitorJob(jobId) {
+      activeJobId = jobId;
+      const btnCancel = document.getElementById("btnCancelJob");
+      const milestoneLabel = document.getElementById("milestoneLabel");
+      const progressPercentage = document.getElementById("progressPercentage");
+      const progressBar = document.getElementById("progressBar");
+      const terminalBox = document.getElementById("terminalBox");
+      const mediaOutput = document.getElementById("mediaOutputSection");
+
+      btnCancel.disabled = false;
+
+      attachJobMonitor(jobId, {
+        onUpdate: (data) => {
+          const progress = data.progress || 0;
+          const milestone = data.current_milestone || "Processing...";
+          const status = data.status || "running";
+
+          milestoneLabel.textContent = milestone;
+          progressPercentage.textContent = `${progress}%`;
+          progressBar.style.width = `${progress}%`;
+
+          // Append log
+          const log = document.createElement("div");
+          log.className = "log-line " + (status === "failed" ? "error" : status === "completed" ? "success" : "system");
+          log.textContent = `[${new Date().toLocaleTimeString()}] ${milestone}`;
+          terminalBox.appendChild(log);
+          terminalBox.scrollTop = terminalBox.scrollHeight;
+
+          if (status === "cancelled") {
+            btnCancel.disabled = true;
+            progressBar.style.background = "#ef4444";
+          } else if (status === "completed") {
+            btnCancel.disabled = true;
+            mediaOutput.style.display = "block";
+
+            if (data.asset_url) {
+              document.getElementById("outputAssetUrl").value = data.asset_url;
+              const video = document.getElementById("webVideoPlayer");
+              const audio = document.getElementById("webAudioPlayer");
+
+              if (data.asset_url.endsWith(".mp4") || data.asset_type === "video") {
+                video.src = data.asset_url;
+                video.style.display = "block";
+                audio.style.display = "none";
+              } else {
+                audio.src = data.asset_url;
+                audio.style.display = "block";
+                video.style.display = "none";
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Cancel Job Handler
+    document.getElementById("btnCancelJob").addEventListener("click", async () => {
+      if (activeJobId && confirm("Are you sure you want to abort this Kaggle generation?")) {
+        await requestJobCancellation(activeJobId);
+      }
+    });
+
+    // Copy Asset URL
+    document.getElementById("btnCopyAssetUrl").addEventListener("click", () => {
+      const url = document.getElementById("outputAssetUrl").value;
+      if (url) {
+        navigator.clipboard.writeText(url);
+        const btn = document.getElementById("btnCopyAssetUrl");
+        btn.textContent = "✅ Copied!";
+        setTimeout(() => { btn.textContent = "📋 Copy Link"; }, 2000);
+      }
+    });
+  </script>
+</body>
+</html>

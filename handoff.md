@@ -1,0 +1,77 @@
+# Epic Automate Project Handoff: YuE-2 Music & Video Studio
+
+> **Project Tracking & Continuity Document**: This document outlines the system architecture, authentication rules, Kaggle GPU integration, Krea.ai & NVIDIA model endpoints, and operational instructions for subsequent agents.
+
+---
+
+## 1. Project Overview & Modus Operandi
+- **Project Name**: YuE-2 Multi-User AI Music & Video Automation Studio
+- **Architecture**: `epic-automate` standard
+  - **Frontend**: Firebase Web App with Role-Based Access Control (`public/`)
+  - **Database & Real-Time Sync**: Cloud Firestore (`/users`, `/automations`)
+  - **Compute Engine**: Kaggle T4 GPU (`nvidiaTeslaT4`) via Kernel Push (`kaggle/`)
+  - **Asset Storage**: Hugging Face Datasets (Free, high-capacity, raw direct streaming)
+  - **Code Storage**: GitHub Repository
+- **Date Created**: 2026-10-09
+- **Workspace**: `c:\Users\DELL\Desktop\EPIC PROJECT\YUE-2`
+
+---
+
+## 2. Infrastructure & Component Architecture
+
+### A. Frontend & User Roles (`public/`)
+- **Authentication**: Firebase Authentication (Email/Password).
+- **Subscription Tiers**:
+  - **Base Plan**: 1 song or 1 video at a time.
+  - **Advanced Plan**: Batch multi-title generator with dynamic subtabs and conversational AI prompting.
+- **Admin Governance (`admin.html`)**:
+  - Approves/deletes pending signups with selected duration (1, 3, 6, 12 months).
+  - Suspends/reactivates accounts.
+  - Changes or downgrades subscription tiers.
+  - Automated expiration checking (`expires_at`).
+- **Settings Center (`settings.html`)**:
+  - **NVIDIA NIM LLM**: Free endpoint (`https://integrate.api.nvidia.com/v1`) with model loader.
+  - **YuE Custom System Prompt**: Fully editable and restructurable in settings with reset button.
+  - **Krea.ai Image Models**: Nano Banana series, SeedDream 4 series, ChatGPT 2 series, and Krea 2.
+
+### B. Headless Background Compute (`kaggle/`)
+- **Kernel Metadata**: `kaggle/kernel-metadata.json` configured for `accelerator: "nvidiaTeslaT4"`.
+- **Worker Script**: `kaggle/yue_executor.py`:
+  - Connects to Firestore via REST API for live progress and milestone text updates.
+  - Runs background cancellation watchdog thread (`cancel_event`).
+  - Calls NVIDIA LLM to generate structured lyrics (`[verse]`, `[chorus]`, `[bridge]`) and genre tags.
+  - Runs YuE2 music synthesis model on T4 GPU.
+  - Generates cover image via Krea.ai API (if "Get Video" is toggled).
+  - Stitches static image over audio into MP4 video with FFmpeg.
+  - Uploads final `.mp3` or `.mp4` to Hugging Face Datasets and returns streaming preview URL.
+
+---
+
+## 3. Credentials & Environment Status
+
+| Credential / Service | Identifier | Status | Purpose |
+|---|---|---|---|
+| **GitHub PAT** | `GITHUB_TOKEN` | 🟢 Verified (`@Airpyk-98`) | Code version control and backup |
+| **Hugging Face Token** | `HF_TOKEN` | 🟡 Configurable | Free dataset asset storage upload |
+| **Kaggle API** | `kaggle.json` | 🟡 Configurable | T4 GPU kernel pushes |
+| **NVIDIA API** | `nvapi-...` | 🟡 In-App (Settings Tab) | Free LLM script generation |
+| **Krea.ai API** | Bearer Token | 🟡 In-App (Settings Tab) | Cover image generation |
+| **Firebase** | Project Config | 🟢 Configured | Hosting & Firestore state |
+
+---
+
+## 4. Work Completed & Recent Changes
+- [x] Initialized complete project scaffolding under `c:\Users\DELL\Desktop\EPIC PROJECT\YUE-2\`.
+- [x] Created responsive dark-mode UI with landing/auth (`index.html`), studio dashboard (`dashboard.html`), admin governance (`admin.html`), and settings center (`settings.html`).
+- [x] Implemented multi-line title parser, single vs shared genre toggle, and conversational batch generator.
+- [x] Built dynamic subtab generator for manual lyrics editing.
+- [x] Implemented "Get Video" feature integrating Krea.ai models (Nano Banana, SeedDream, ChatGPTS) with FFmpeg static looping.
+- [x] Built Kaggle T4 worker script (`kaggle/yue_executor.py`) with Firestore milestone sync and cancellation watchdog.
+- [x] Wrote Firestore security rules (`firestore.rules`) and Firebase Hosting config (`firebase.json`).
+
+---
+
+## 5. Instructions for Next Agent
+1. To test the frontend locally: Run `npx serve public` or deploy with `firebase deploy`.
+2. To test Kaggle worker: Set `FIREBASE_PROJECT_ID` and `JOB_ID` environment variables and run `python kaggle/yue_executor.py`.
+3. Keep this `handoff.md` continuously updated as new features or model weights are added.

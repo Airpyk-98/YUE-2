@@ -1,0 +1,16 @@
+{
+  "id": "YOUR_KAGGLE_USERNAME/yue2-automation-worker",
+  "title": "YuE-2 AI Music & Video Worker",
+  "code_file": "yue_executor.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_tpu": "false",
+  "accelerator": "nvidiaTeslaT4",
+  "enable_internet": "true",
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}

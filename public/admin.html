@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Control Center | YuE-2 Studio</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="admin.html" class="brand">
+      <div class="brand-icon">🛡️</div>
+      <div>
+        <h1>YuE-2 Admin Console</h1>
+        <p class="subtitle" style="font-size:11px; color:var(--text-muted);">User Verification, Plan Upgrades & Subscriptions</p>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="dashboard.html" class="nav-link">Studio Dashboard</a>
+      <a href="admin.html" class="nav-link active">Admin Panel</a>
+      <span class="plan-pill plan-admin">ADMIN</span>
+      <button id="btnLogout" class="btn btn-outline btn-sm">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+      <div>
+        <h2>👥 User & Subscription Governance</h2>
+        <p style="color:var(--text-muted); font-size:14px;">Approve new paying users, manage subscriptions, downgrade tiers, or revoke access.</p>
+      </div>
+      <button id="btnRefresh" class="btn btn-secondary btn-sm">🔄 Refresh Directory</button>
+    </div>
+
+    <!-- Alert Box -->
+    <div id="adminAlert" style="display:none; padding:12px 16px; border-radius:8px; margin-bottom:20px; font-size:14px;"></div>
+
+    <!-- Section 1: Pending Approvals -->
+    <div class="card" style="margin-bottom: 32px;">
+      <div class="card-header">
+        <div class="card-title">⏳ Pending Sign-Up Approvals</div>
+        <p class="card-desc">Review and approve incoming user registration requests with paid tier and duration.</p>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>User Email</th>
+              <th>Requested Plan</th>
+              <th>Duration (Months)</th>
+              <th>Signed Up</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="pendingTableBody">
+            <tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:24px;">Loading pending registrations...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Section 2: Active & Managed Users -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">👤 Active User Directory & Subscriptions</div>
+        <p class="card-desc">Manage existing subscriptions, downgrade/upgrade plans, extend duration, or deactivate accounts.</p>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Active Plan</th>
+              <th>Status</th>
+              <th>Expires At</th>
+              <th>Modify Plan</th>
+              <th>Extend</th>
+              <th>Access Control</th>
+            </tr>
+          </thead>
+          <tbody id="activeTableBody">
+            <tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:24px;">Loading user directory...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { enforceUserAuth, logoutUser } from "./js/auth.js";
+    import { 
+      fetchAllUsers, 
+      approveUserRegistration, 
+      deleteUserRecord, 
+      setUserSuspension, 
+      changeUserPlan, 
+      extendUserSubscription 
+    } from "./js/admin.js";
+
+    document.getElementById("btnLogout").addEventListener("click", logoutUser);
+
+    enforceUserAuth(["admin"]).then(() => {
+      loadUsers();
+    });
+
+    document.getElementById("btnRefresh").addEventListener("click", loadUsers);
+
+    async function loadUsers() {
+      const pendingTbody = document.getElementById("pendingTableBody");
+      const activeTbody = document.getElementById("activeTableBody");
+
+      try {
+        const users = await fetchAllUsers();
+        const pending = users.filter(u => !u.approved || u.status === "pending_approval");
+        const active = users.filter(u => u.approved && u.status !== "pending_approval");
+
+        // Render Pending
+        if (pending.length === 0) {
+          pendingTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:20px;">No pending sign-ups found.</td></tr>`;
+        } else {
+          pendingTbody.innerHTML = pending.map(u => `
+            <tr>
+              <td><strong>${u.email}</strong></td>
+              <td>
+                <select id="plan_${u.id}" class="form-select" style="padding:6px; font-size:12px; width:auto;">
+                  <option value="base" ${u.requested_plan === 'base' ? 'selected' : ''}>Base Plan</option>
+                  <option value="advanced" ${u.requested_plan === 'advanced' ? 'selected' : ''}>Advanced Plan</option>
+                </select>
+              </td>
+              <td>
+                <select id="months_${u.id}" class="form-select" style="padding:6px; font-size:12px; width:auto;">
+                  <option value="1" ${u.requested_months == 1 ? 'selected' : ''}>1 Month</option>
+                  <option value="3" ${u.requested_months == 3 ? 'selected' : ''}>3 Months</option>
+                  <option value="6" ${u.requested_months == 6 ? 'selected' : ''}>6 Months</option>
+                  <option value="12" ${u.requested_months == 12 ? 'selected' : ''}>12 Months</option>
+                </select>
+              </td>
+              <td>${new Date(u.created_at).toLocaleDateString()}</td>
+              <td>
+                <button class="btn btn-primary btn-sm btn-approve" data-id="${u.id}">✅ Approve</button>
+                <button class="btn btn-danger btn-sm btn-delete" data-id="${u.id}">🗑️ Delete</button>
+              </td>
+            </tr>
+          `).join("");
+        }
+
+        // Render Active
+        if (active.length === 0) {
+          activeTbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:20px;">No active users.</td></tr>`;
+        } else {
+          activeTbody.innerHTML = active.map(u => {
+            const isSuspended = u.status === "suspended";
+            const isExpired = u.expires_at && new Date() > new Date(u.expires_at);
+            let statusPill = `<span class="plan-pill" style="background:#052e16; color:#86efac;">Active</span>`;
+            if (isSuspended) statusPill = `<span class="plan-pill" style="background:#450a0a; color:#fca5a5;">Suspended</span>`;
+            else if (isExpired && u.role !== 'admin') statusPill = `<span class="plan-pill" style="background:#713f12; color:#fde047;">Expired</span>`;
+
+            const expiryFormatted = u.expires_at ? new Date(u.expires_at).toLocaleDateString() : 'Lifetime';
+
+            return `
+              <tr>
+                <td><strong>${u.email}</strong></td>
+                <td><span class="plan-pill plan-${u.approved_plan || u.role}">${(u.approved_plan || u.role).toUpperCase()}</span></td>
+                <td>${statusPill}</td>
+                <td>${expiryFormatted}</td>
+                <td>
+                  <select class="form-select select-change-plan" data-id="${u.id}" style="padding:4px 8px; font-size:12px; width:auto;">
+                    <option value="base" ${(u.approved_plan || u.role) === 'base' ? 'selected' : ''}>Base</option>
+                    <option value="advanced" ${(u.approved_plan || u.role) === 'advanced' ? 'selected' : ''}>Advanced</option>
+                  </select>
+                </td>
+                <td>
+                  <button class="btn btn-secondary btn-sm btn-extend" data-id="${u.id}">+1 Month</button>
+                </td>
+                <td>
+                  ${isSuspended 
+                    ? `<button class="btn btn-primary btn-sm btn-toggle-suspend" data-id="${u.id}" data-action="unsuspend">Reactivate</button>` 
+                    : `<button class="btn btn-danger btn-sm btn-toggle-suspend" data-id="${u.id}" data-action="suspend">Deactivate</button>`
+                  }
+                  <button class="btn btn-outline btn-sm btn-delete" data-id="${u.id}">Delete</button>
+                </td>
+              </tr>
+            `;
+          }).join("");
+        }
+
+        bindActionButtons();
+      } catch (err) {
+        showAlert("Failed to load users: " + err.message, "error");
+      }
+    }
+
+    function bindActionButtons() {
+      // Approve
+      document.querySelectorAll(".btn-approve").forEach(b => {
+        b.addEventListener("click", async () => {
+          const id = b.dataset.id;
+          const plan = document.getElementById(`plan_${id}`).value;
+          const months = document.getElementById(`months_${id}`).value;
+          b.disabled = true;
+          await approveUserRegistration(id, plan, months);
+          showAlert("User successfully approved and activated!", "success");
+          loadUsers();
+        });
+      });
+
+      // Delete
+      document.querySelectorAll(".btn-delete").forEach(b => {
+        b.addEventListener("click", async () => {
+          if (confirm("Are you sure you want to permanently delete this user?")) {
+            b.disabled = true;
+            await deleteUserRecord(b.dataset.id);
+            showAlert("User record deleted.", "success");
+            loadUsers();
+          }
+        });
+      });
+
+      // Toggle Suspend
+      document.querySelectorAll(".btn-toggle-suspend").forEach(b => {
+        b.addEventListener("click", async () => {
+          const id = b.dataset.id;
+          const action = b.dataset.action;
+          await setUserSuspension(id, action === "suspend");
+          showAlert(action === "suspend" ? "User access deactivated." : "User reactivated.", "success");
+          loadUsers();
+        });
+      });
+
+      // Change Plan
+      document.querySelectorAll(".select-change-plan").forEach(s => {
+        s.addEventListener("change", async () => {
+          const id = s.dataset.id;
+          await changeUserPlan(id, s.value);
+          showAlert(`User tier changed to ${s.value.toUpperCase()}.`, "success");
+          loadUsers();
+        });
+      });
+
+      // Extend Subscription
+      document.querySelectorAll(".btn-extend").forEach(b => {
+        b.addEventListener("click", async () => {
+          const id = b.dataset.id;
+          await extendUserSubscription(id, 1);
+          showAlert("Subscription extended by 1 month.", "success");
+          loadUsers();
+        });
+      });
+    }
+
+    function showAlert(msg, type = "success") {
+      const box = document.getElementById("adminAlert");
+      box.style.display = "block";
+      box.style.background = type === "success" ? "#052e16" : "#450a0a";
+      box.style.color = type === "success" ? "#86efac" : "#fca5a5";
+      box.textContent = msg;
+      setTimeout(() => { box.style.display = "none"; }, 3500);
+    }
+  </script>
+</body>
+</html>

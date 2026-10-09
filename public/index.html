@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YuE-2 AI Music & Video Studio | Sign In</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="card center-card">
+      <div class="auth-header">
+        <div class="brand-icon" style="margin: 0 auto 16px;">🎵</div>
+        <h2>YuE-2 Music Studio</h2>
+        <p class="card-desc">Asynchronous AI Music & Video Synthesis Platform</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button id="tabSignInBtn" class="auth-tab-btn active">Sign In</button>
+        <button id="tabSignUpBtn" class="auth-tab-btn">Sign Up</button>
+      </div>
+
+      <!-- Sign In Form -->
+      <form id="signInForm">
+        <div class="form-group" style="text-align: left;">
+          <label class="form-label" for="loginEmail">Email Address</label>
+          <input type="email" id="loginEmail" class="form-input" placeholder="name@example.com" required>
+        </div>
+
+        <div class="form-group" style="text-align: left;">
+          <label class="form-label" for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" required>
+        </div>
+
+        <div id="loginAlert" style="display:none; padding:10px; margin-bottom:14px; border-radius:8px; font-size:13px; text-align:left;"></div>
+
+        <button type="submit" id="btnSubmitLogin" class="btn btn-primary" style="width:100%;">
+          Sign In to Studio
+        </button>
+      </form>
+
+      <!-- Sign Up Form -->
+      <form id="signUpForm" style="display: none;">
+        <div class="form-group" style="text-align: left;">
+          <label class="form-label" for="registerEmail">Email Address</label>
+          <input type="email" id="registerEmail" class="form-input" placeholder="name@example.com" required>
+        </div>
+
+        <div class="form-group" style="text-align: left;">
+          <label class="form-label" for="registerPassword">Password</label>
+          <input type="password" id="registerPassword" class="form-input" placeholder="At least 6 characters" minlength="6" required>
+        </div>
+
+        <div class="form-group" style="text-align: left;">
+          <label class="form-label" for="selectPlan">Subscription Tier Paid</label>
+          <select id="selectPlan" class="form-select" required>
+            <option value="base">Base Plan (Single Song & Video Generation)</option>
+            <option value="advanced">Advanced Plan (Batch Multi-Song Automations)</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="text-align: left;">
+          <label class="form-label" for="selectMonths">Subscription Duration Paid</label>
+          <select id="selectMonths" class="form-select" required>
+            <option value="1">1 Month</option>
+            <option value="3">3 Months</option>
+            <option value="6">6 Months</option>
+            <option value="12">12 Months (Annual)</option>
+          </select>
+        </div>
+
+        <p style="font-size:12px; color:var(--text-muted); text-align:left; margin-bottom:16px;">
+          ℹ️ <strong>Note:</strong> All new sign-ups must be verified and approved by the platform administrator before access is granted.
+        </p>
+
+        <div id="registerAlert" style="display:none; padding:10px; margin-bottom:14px; border-radius:8px; font-size:13px; text-align:left;"></div>
+
+        <button type="submit" id="btnSubmitRegister" class="btn btn-primary" style="width:100%;">
+          Submit Sign-Up for Approval
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { registerUser, loginUser } from "./js/auth.js";
+
+    const tabSignInBtn = document.getElementById("tabSignInBtn");
+    const tabSignUpBtn = document.getElementById("tabSignUpBtn");
+    const signInForm = document.getElementById("signInForm");
+    const signUpForm = document.getElementById("signUpForm");
+    const loginAlert = document.getElementById("loginAlert");
+    const registerAlert = document.getElementById("registerAlert");
+
+    tabSignInBtn.addEventListener("click", () => {
+      tabSignInBtn.classList.add("active");
+      tabSignUpBtn.classList.remove("active");
+      signInForm.style.display = "block";
+      signUpForm.style.display = "none";
+    });
+
+    tabSignUpBtn.addEventListener("click", () => {
+      tabSignUpBtn.classList.add("active");
+      tabSignInBtn.classList.remove("active");
+      signUpForm.style.display = "block";
+      signInForm.style.display = "none";
+    });
+
+    signInForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      loginAlert.style.display = "none";
+      const btn = document.getElementById("btnSubmitLogin");
+      btn.disabled = true;
+      btn.textContent = "Signing in...";
+
+      const res = await loginUser(
+        document.getElementById("loginEmail").value,
+        document.getElementById("loginPassword").value
+      );
+
+      btn.disabled = false;
+      btn.textContent = "Sign In to Studio";
+
+      if (res.success) {
+        if (res.user.role === "admin") {
+          window.location.href = "admin.html";
+        } else {
+          window.location.href = "dashboard.html";
+        }
+      } else {
+        loginAlert.style.display = "block";
+        loginAlert.style.background = "#450a0a";
+        loginAlert.style.color = "#fca5a5";
+        loginAlert.textContent = res.error;
+      }
+    });
+
+    signUpForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      registerAlert.style.display = "none";
+      const btn = document.getElementById("btnSubmitRegister");
+      btn.disabled = true;
+      btn.textContent = "Submitting...";
+
+      const res = await registerUser(
+        document.getElementById("registerEmail").value,
+        document.getElementById("registerPassword").value,
+        document.getElementById("selectPlan").value,
+        document.getElementById("selectMonths").value
+      );
+
+      btn.disabled = false;
+      btn.textContent = "Submit Sign-Up for Approval";
+
+      if (res.success) {
+        registerAlert.style.display = "block";
+        registerAlert.style.background = "#052e16";
+        registerAlert.style.color = "#86efac";
+        registerAlert.innerHTML = `<strong>Registration Submitted!</strong><br>Your account is awaiting admin approval.`;
+        signUpForm.reset();
+      } else {
+        registerAlert.style.display = "block";
+        registerAlert.style.background = "#450a0a";
+        registerAlert.style.color = "#fca5a5";
+        registerAlert.textContent = res.error;
+      }
+    });
+  </script>
+</body>
+</html>
