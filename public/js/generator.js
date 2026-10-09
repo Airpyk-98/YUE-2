@@ -40,6 +40,14 @@ export async function dispatchAutomationJob(user, payload) {
       model: settings.krea_model,
       aspect_ratio: settings.krea_aspect_ratio
     },
+    kaggle_config: {
+      username: settings.kaggle_username || "",
+      key: settings.kaggle_key || ""
+    },
+    hf_config: {
+      token: settings.hf_token || "",
+      dataset_repo: settings.hf_dataset_repo || ""
+    },
 
     // Song Payload
     items: payload.items

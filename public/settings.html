@@ -28,7 +28,7 @@
     <div style="margin-bottom: 24px;">
       <h2>⚙️ Studio Settings & AI Configurations</h2>
       <p style="color: var(--text-muted); font-size: 14px;">
-        Configure your NVIDIA NIM Script Generator, customize the YuE-specific prompting format, and set up your Krea.ai image model.
+        Configure your NVIDIA NIM Script Generator, Kaggle T4 GPU compute credentials, Krea.ai image engine, and Hugging Face storage.
       </p>
     </div>
 
@@ -60,19 +60,9 @@
         <div class="form-group">
           <div style="display: flex; gap: 12px; align-items: flex-end;">
             <div style="flex: 1;">
-              <label class="form-label" for="nvidiaModelSelect">Select NVIDIA NIM Model</label>
+              <label class="form-label" for="nvidiaModelSelect">Select NVIDIA NIM Model (All 80+ Models Available)</label>
               <select id="nvidiaModelSelect" class="form-select">
-                <option value="meta/llama-3.3-70b-instruct" selected>meta/llama-3.3-70b-instruct (Recommended - Ultra High Lyric Reasoning)</option>
-                <option value="meta/llama-3.1-405b-instruct">meta/llama-3.1-405b-instruct (Flagship 405B)</option>
-                <option value="meta/llama-3.1-70b-instruct">meta/llama-3.1-70b-instruct (Fast & Accurate)</option>
-                <option value="meta/llama-3.1-8b-instruct">meta/llama-3.1-8b-instruct (Lightweight & Rapid)</option>
-                <option value="nvidia/llama-3.1-nemotron-70b-instruct">nvidia/llama-3.1-nemotron-70b-instruct (NVIDIA Optimized)</option>
-                <option value="nvidia/llama-3.1-nemotron-51b-instruct">nvidia/llama-3.1-nemotron-51b-instruct</option>
-                <option value="mistralai/mixtral-8x22b-instruct">mistralai/mixtral-8x22b-instruct</option>
-                <option value="mistralai/mistral-large-2-instruct">mistralai/mistral-large-2-instruct</option>
-                <option value="deepseek-ai/deepseek-r1">deepseek-ai/deepseek-r1</option>
-                <option value="deepseek-ai/deepseek-v3">deepseek-ai/deepseek-v3</option>
-                <option value="qwen/qwen2.5-72b-instruct">qwen/qwen2.5-72b-instruct</option>
+                <option value="meta/llama-3.3-70b-instruct" selected>meta/llama-3.3-70b-instruct (Recommended - Flagship Lyric Reasoning)</option>
               </select>
             </div>
             <button type="button" id="btnLoadNvidiaModels" class="btn btn-secondary" style="height: 42px;">
@@ -103,7 +93,40 @@
         </div>
       </div>
 
-      <!-- Section 2: Krea.ai Image & Video Overlay Engine -->
+      <!-- Section 2: Kaggle GPU Compute Engine & Credentials -->
+      <div class="card" style="margin-bottom: 24px;">
+        <div class="card-header">
+          <div class="card-title">⚡ Kaggle T4 GPU Compute Credentials (epic-automate Engine)</div>
+          <p class="card-desc">Authenticate and dispatch headless music & video synthesis jobs directly to Kaggle T4 GPU kernels.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="kaggleUsername">Kaggle Username</label>
+            <input type="text" id="kaggleUsername" class="form-input" placeholder="e.g. your_kaggle_username" autocomplete="off">
+            <span style="font-size:11px; color:var(--text-muted);">Your exact Kaggle username found at <a href="https://www.kaggle.com/settings" target="_blank" style="color:var(--accent-color);">kaggle.com/settings</a>.</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="kaggleKey">Kaggle API Key / Token</label>
+            <input type="password" id="kaggleKey" class="form-input" placeholder="e.g. 32-character API key" autocomplete="off">
+            <span style="font-size:11px; color:var(--text-muted);">From downloaded <code>kaggle.json</code> (Click "Create New API Token" on Kaggle).</span>
+          </div>
+        </div>
+
+        <div style="background:var(--bg-input); padding:14px; border-radius:8px; border:1px solid var(--border-color); font-size:13px; color:var(--text-muted); line-height:1.6; margin-top:8px;">
+          <div style="font-weight:600; color:var(--text-primary); margin-bottom:4px;">🔑 How to get your Kaggle Username & API Token:</div>
+          <ol style="margin:0 0 0 18px; padding:0;">
+            <li>Log into your account at <a href="https://www.kaggle.com" target="_blank" style="color:var(--accent-color);">kaggle.com</a>.</li>
+            <li>Go to your <strong>Account Settings</strong> page (<a href="https://www.kaggle.com/settings" target="_blank" style="color:var(--accent-color);">kaggle.com/settings</a>).</li>
+            <li>Scroll down to the <strong>API</strong> section.</li>
+            <li>Click <strong>Create New Token</strong> — this downloads a file named <code>kaggle.json</code>.</li>
+            <li>Open <code>kaggle.json</code> to copy your <code>"username"</code> and <code>"key"</code> into these boxes, then click <strong>Save Settings</strong>.</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Section 3: Krea.ai Image & Video Overlay Engine -->
       <div class="card" style="margin-bottom: 24px;">
         <div class="card-header">
           <div class="card-title">🎨 Krea.ai Image Model Engine ("Get Video" Feature)</div>
@@ -153,7 +176,29 @@
         </div>
       </div>
 
-      <div style="display: flex; justify-content: flex-end; gap: 12px;">
+      <!-- Section 4: Hugging Face Storage & Media Delivery -->
+      <div class="card" style="margin-bottom: 24px;">
+        <div class="card-header">
+          <div class="card-title">🤗 Hugging Face Storage (Asset CDN)</div>
+          <p class="card-desc">Where Kaggle uploads generated audio (.mp3) and video (.mp4) files for instant streaming.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="hfToken">Hugging Face Access Token</label>
+            <input type="password" id="hfToken" class="form-input" placeholder="hf_..." autocomplete="off">
+            <span style="font-size:11px; color:var(--text-muted);">Generate Write token at <a href="https://huggingface.co/settings/tokens" target="_blank" style="color:var(--accent-color);">huggingface.co/settings/tokens</a></span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="hfDatasetRepo">Hugging Face Dataset Repository Path</label>
+            <input type="text" id="hfDatasetRepo" class="form-input" placeholder="e.g. username/yue-music-assets">
+            <span style="font-size:11px; color:var(--text-muted);">Destination dataset (e.g. <code>username/yue-music-assets</code>).</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 12px; margin-bottom: 40px;">
         <a href="dashboard.html" class="btn btn-secondary">Back to Dashboard</a>
         <button type="submit" id="btnSaveSettings" class="btn btn-primary">
           💾 Save Settings & Configurations
@@ -168,9 +213,10 @@
       loadUserSettings, 
       saveUserSettings, 
       fetchNvidiaModels, 
+      populateNvidiaModelSelect,
       DEFAULT_NVIDIA_BASE_URL, 
       DEFAULT_YUE_SYSTEM_PROMPT 
-    } from "./js/settings.js";
+    } from "./js/settings.js?v=20261009_v4";
 
     let currentUser = null;
 
@@ -189,20 +235,20 @@
       document.getElementById("kreaApiKey").value = settings.krea_api_key || "";
       document.getElementById("kreaAspectRatio").value = settings.krea_aspect_ratio || "16:9";
 
+      // Populate Kaggle and Hugging Face fields
+      document.getElementById("kaggleUsername").value = settings.kaggle_username || "";
+      document.getElementById("kaggleKey").value = settings.kaggle_key || "";
+      document.getElementById("hfToken").value = settings.hf_token || "";
+      document.getElementById("hfDatasetRepo").value = settings.hf_dataset_repo || "";
+
       if (settings.krea_model) {
         document.getElementById("kreaModelSelect").value = settings.krea_model;
       }
 
+      // Populate full catalog of 80+ NVIDIA models immediately
+      const sel = document.getElementById("nvidiaModelSelect");
+      populateNvidiaModelSelect(sel, settings.nvidia_model || "meta/llama-3.3-70b-instruct");
       if (settings.nvidia_model) {
-        const sel = document.getElementById("nvidiaModelSelect");
-        let exists = Array.from(sel.options).some(o => o.value === settings.nvidia_model);
-        if (!exists) {
-          const opt = document.createElement("option");
-          opt.value = settings.nvidia_model;
-          opt.textContent = settings.nvidia_model;
-          sel.appendChild(opt);
-        }
-        sel.value = settings.nvidia_model;
         document.getElementById("customNvidiaModel").value = settings.nvidia_model;
       }
     });
@@ -219,11 +265,6 @@
       const apiKey = document.getElementById("nvidiaApiKey").value.trim();
       const alertBox = document.getElementById("settingsAlert");
 
-      if (!apiKey) {
-        alert("Please enter your NVIDIA API Key first.");
-        return;
-      }
-
       btn.disabled = true;
       btn.textContent = "Loading Models...";
 
@@ -231,17 +272,21 @@
         const result = await fetchNvidiaModels(baseUrl, apiKey);
         const models = Array.isArray(result) ? result : (result.models || []);
         const sel = document.getElementById("nvidiaModelSelect");
+        const currentVal = sel.value;
         sel.innerHTML = "";
         models.forEach(m => {
           const opt = document.createElement("option");
-          opt.value = m;
-          opt.textContent = m;
+          opt.value = typeof m === "string" ? m : m.id;
+          opt.textContent = typeof m === "string" ? m : (m.label || m.id);
           sel.appendChild(opt);
         });
+        if (currentVal && Array.from(sel.options).some(o => o.value === currentVal)) {
+          sel.value = currentVal;
+        }
         alertBox.style.display = "block";
         alertBox.style.background = "#052e16";
         alertBox.style.color = "#86efac";
-        alertBox.textContent = `✅ Successfully loaded ${models.length} NVIDIA NIM models! Select from the dropdown or enter custom model below.`;
+        alertBox.textContent = `✅ Successfully loaded all ${models.length} NVIDIA NIM models! Select from the dropdown or enter custom model below.`;
       } catch (err) {
         alertBox.style.display = "block";
         alertBox.style.background = "#052e16";
@@ -270,7 +315,11 @@
         system_prompt: document.getElementById("systemPrompt").value,
         krea_api_key: document.getElementById("kreaApiKey").value.trim(),
         krea_model: document.getElementById("kreaModelSelect").value,
-        krea_aspect_ratio: document.getElementById("kreaAspectRatio").value
+        krea_aspect_ratio: document.getElementById("kreaAspectRatio").value,
+        kaggle_username: document.getElementById("kaggleUsername").value.trim(),
+        kaggle_key: document.getElementById("kaggleKey").value.trim(),
+        hf_token: document.getElementById("hfToken").value.trim(),
+        hf_dataset_repo: document.getElementById("hfDatasetRepo").value.trim()
       };
 
       await saveUserSettings(currentUser.uid, newSettings);
@@ -280,8 +329,8 @@
       alertBox.style.display = "block";
       alertBox.style.background = "#052e16";
       alertBox.style.color = "#86efac";
-      alertBox.textContent = "Settings successfully saved to your profile!";
-      setTimeout(() => { alertBox.style.display = "none"; }, 3000);
+      alertBox.textContent = "✅ Settings & credentials successfully saved to your profile!";
+      setTimeout(() => { alertBox.style.display = "none"; }, 3500);
     });
   </script>
 </body>

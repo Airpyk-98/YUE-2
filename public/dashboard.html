@@ -41,6 +41,14 @@
       </div>
     </div>
 
+    <!-- Kaggle Credentials Notice Banner -->
+    <div id="kaggleNoticeBanner" style="display:none; font-size:13px; background:#0f172a; color:#93c5fd; padding:12px 16px; border-radius:8px; border:1px solid #3b82f6; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        ⚡ <strong>Kaggle T4 GPU Credentials:</strong> Please configure your Kaggle Username & API Token in <a href="settings.html" style="color:#60a5fa; font-weight:600; text-decoration:underline;">Settings</a> to run GPU music generation jobs.
+      </div>
+      <a href="settings.html" class="btn btn-primary btn-sm" style="white-space:nowrap; margin-left:12px;">Go to Settings</a>
+    </div>
+
     <!-- Tier Switcher (For Advanced / Admin users) -->
     <div id="tierSwitcher" style="display:none; margin-bottom: 20px;">
       <div style="display:flex; gap:10px;">
@@ -242,7 +250,8 @@
 
   <script type="module">
     import { enforceUserAuth, logoutUser } from "./js/auth.js?v=20261009_v3";
-    import { dispatchAutomationJob, requestJobCancellation, attachJobMonitor } from "./js/generator.js";
+    import { dispatchAutomationJob, requestJobCancellation, attachJobMonitor } from "./js/generator.js?v=20261009_v4";
+    import { loadUserSettings } from "./js/settings.js?v=20261009_v4";
 
     let currentUser = null;
     let activeJobId = null;
@@ -267,6 +276,14 @@
       } else {
         document.getElementById("planUpgradeBanner").style.display = "block";
       }
+
+      // Check if user has configured Kaggle credentials
+      loadUserSettings(user.uid).then(settings => {
+        if (!settings.kaggle_username || !settings.kaggle_key) {
+          const banner = document.getElementById("kaggleNoticeBanner");
+          if (banner) banner.style.display = "flex";
+        }
+      });
 
       // Check if user has an active or recent job in localStorage
       const cachedJob = localStorage.getItem("yue_active_job_" + user.uid);
