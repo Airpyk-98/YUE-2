@@ -83,7 +83,7 @@
   </div>
 
   <script type="module">
-    import { registerUser, loginUser } from "./js/auth.js";
+    import { registerUser, loginUser } from "./js/auth.js?v=20261009_v3";
 
     const tabSignInBtn = document.getElementById("tabSignInBtn");
     const tabSignUpBtn = document.getElementById("tabSignUpBtn");
@@ -113,10 +113,10 @@
       btn.disabled = true;
       btn.textContent = "Signing in...";
 
-      const res = await loginUser(
-        document.getElementById("loginEmail").value,
-        document.getElementById("loginPassword").value
-      );
+      const emailVal = document.getElementById("loginEmail").value.trim();
+      const passVal = document.getElementById("loginPassword").value.trim();
+
+      const res = await loginUser(emailVal, passVal);
 
       btn.disabled = false;
       btn.textContent = "Sign In to Studio";

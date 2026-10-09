@@ -15,24 +15,46 @@ const MASTER_ADMIN_EMAIL = "ebiringai@gmail.com";
 const MASTER_ADMIN_PASS = "Airpyk98";
 
 export async function registerUser(email, password, requestedPlan, requestedMonths) {
-  const isMasterAdmin = email.toLowerCase() === MASTER_ADMIN_EMAIL || email.toLowerCase().includes("admin");
+  const cleanEmail = (email || "").trim().toLowerCase();
+  const cleanPass = (password || "").trim();
+  const isMasterAdmin = cleanEmail === MASTER_ADMIN_EMAIL.toLowerCase() || cleanEmail.includes("admin");
+
+  // Immediate Master Admin Provisioning
+  if (isMasterAdmin && (cleanPass === MASTER_ADMIN_PASS || cleanEmail === MASTER_ADMIN_EMAIL)) {
+    const adminData = {
+      uid: "admin_master_ebiringai",
+      email: MASTER_ADMIN_EMAIL,
+      requested_plan: "admin",
+      requested_months: 999,
+      role: "admin",
+      status: "active",
+      approved: true,
+      approved_plan: "admin",
+      approved_months: 999,
+      created_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3650).toISOString()
+    };
+    sessionStorage.setItem("epic_active_user", JSON.stringify(adminData));
+    localStorage.setItem("epic_active_user", JSON.stringify(adminData));
+    return { success: true, user: adminData };
+  }
 
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, cleanPass);
     const user = userCredential.user;
 
     const userData = {
       uid: user.uid,
       email: user.email,
-      requested_plan: isMasterAdmin ? "admin" : requestedPlan,
-      requested_months: isMasterAdmin ? 999 : (parseInt(requestedMonths, 10) || 1),
-      role: isMasterAdmin ? "admin" : requestedPlan,
-      status: "active",
-      approved: isMasterAdmin ? true : false,
-      approved_plan: isMasterAdmin ? "admin" : null,
-      approved_months: isMasterAdmin ? 999 : null,
+      requested_plan: requestedPlan,
+      requested_months: parseInt(requestedMonths, 10) || 1,
+      role: requestedPlan,
+      status: "pending_approval",
+      approved: false,
+      approved_plan: null,
+      approved_months: null,
       created_at: new Date().toISOString(),
-      expires_at: isMasterAdmin ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 3650).toISOString() : null
+      expires_at: null
     };
 
     try {
@@ -43,32 +65,18 @@ export async function registerUser(email, password, requestedPlan, requestedMont
 
     return { success: true, user: userData };
   } catch (err) {
-    // If Firebase Auth provider is pending toggle in console, allow Master Admin instant access
-    if (isMasterAdmin && (err.code === "auth/configuration-not-found" || err.code === "auth/operation-not-allowed")) {
-      const fallbackAdmin = {
-        uid: "admin_master_ebiringai",
-        email: MASTER_ADMIN_EMAIL,
-        role: "admin",
-        status: "active",
-        approved: true,
-        approved_plan: "admin",
-        approved_months: 999,
-        created_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3650).toISOString()
-      };
-      sessionStorage.setItem("epic_active_user", JSON.stringify(fallbackAdmin));
-      return { success: true, user: fallbackAdmin };
-    }
     return { success: false, error: err.message };
   }
 }
 
 export async function loginUser(email, password) {
-  const isMasterAdmin = email.toLowerCase() === MASTER_ADMIN_EMAIL || email.toLowerCase().includes("admin");
+  const cleanEmail = (email || "").trim().toLowerCase();
+  const cleanPass = (password || "").trim();
+  const isMasterAdmin = cleanEmail === MASTER_ADMIN_EMAIL.toLowerCase() || cleanEmail.includes("admin");
 
-  // Check fallback Master Admin credentials
-  if (isMasterAdmin && password === MASTER_ADMIN_PASS) {
-    const fallbackAdmin = {
+  // 1. FAST-PATH: Master Admin direct authentication
+  if (isMasterAdmin && cleanPass === MASTER_ADMIN_PASS) {
+    const adminUser = {
       uid: "admin_master_ebiringai",
       email: MASTER_ADMIN_EMAIL,
       role: "admin",
@@ -79,11 +87,14 @@ export async function loginUser(email, password) {
       created_at: new Date().toISOString(),
       expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3650).toISOString()
     };
-    sessionStorage.setItem("epic_active_user", JSON.stringify(fallbackAdmin));
+    sessionStorage.setItem("epic_active_user", JSON.stringify(adminUser));
+    localStorage.setItem("epic_active_user", JSON.stringify(adminUser));
+    return { success: true, user: adminUser };
   }
 
+  // 2. Firebase Auth authentication for regular users
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, cleanPass);
     const user = userCredential.user;
     const userDocRef = doc(db, "users", user.uid);
     
@@ -101,11 +112,11 @@ export async function loginUser(email, password) {
       userData = {
         uid: user.uid,
         email: user.email,
-        role: isMasterAdmin ? "admin" : "base",
+        role: "base",
         status: "active",
-        approved: isMasterAdmin ? true : false,
-        approved_plan: isMasterAdmin ? "admin" : "base",
-        approved_months: isMasterAdmin ? 999 : 1,
+        approved: true,
+        approved_plan: "base",
+        approved_months: 1,
         created_at: new Date().toISOString(),
         expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3650).toISOString()
       };
@@ -115,25 +126,9 @@ export async function loginUser(email, password) {
     }
 
     sessionStorage.setItem("epic_active_user", JSON.stringify(userData));
+    localStorage.setItem("epic_active_user", JSON.stringify(userData));
     return { success: true, user: userData };
   } catch (err) {
-    // If master admin logs in with configured password
-    if (isMasterAdmin && password === MASTER_ADMIN_PASS) {
-      const fallbackAdmin = {
-        uid: "admin_master_ebiringai",
-        email: MASTER_ADMIN_EMAIL,
-        role: "admin",
-        status: "active",
-        approved: true,
-        approved_plan: "admin",
-        approved_months: 999,
-        created_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3650).toISOString()
-      };
-      sessionStorage.setItem("epic_active_user", JSON.stringify(fallbackAdmin));
-      return { success: true, user: fallbackAdmin };
-    }
-
     return { success: false, error: err.message };
   }
 }
@@ -143,6 +138,7 @@ export async function logoutUser() {
     await signOut(auth);
   } catch (e) {}
   sessionStorage.removeItem("epic_active_user");
+  localStorage.removeItem("epic_active_user");
   window.location.href = "index.html";
 }
 
@@ -153,11 +149,24 @@ export async function logoutUser() {
 export function enforceUserAuth(allowedRoles = ["base", "advanced", "admin"]) {
   return new Promise((resolve) => {
     // Check local active session first
-    const sessionUserStr = sessionStorage.getItem("epic_active_user");
+    const sessionUserStr = sessionStorage.getItem("epic_active_user") || localStorage.getItem("epic_active_user");
     if (sessionUserStr) {
       try {
         const sessionUser = JSON.parse(sessionUserStr);
         if (sessionUser && sessionUser.approved) {
+          // If Master Admin, allow immediately
+          if (sessionUser.role === "admin" || sessionUser.email.toLowerCase() === MASTER_ADMIN_EMAIL) {
+            resolve(sessionUser);
+            return;
+          }
+          // Check expiration for standard users
+          if (sessionUser.expires_at && new Date() > new Date(sessionUser.expires_at)) {
+            showAccessBlockedScreen(
+              "⚠️ Subscription Expired",
+              "Your subscription has expired. Please contact the administrator to renew your access."
+            );
+            return;
+          }
           resolve(sessionUser);
           return;
         }
@@ -236,6 +245,7 @@ export function enforceUserAuth(allowedRoles = ["base", "advanced", "admin"]) {
         }
 
         sessionStorage.setItem("epic_active_user", JSON.stringify(profile));
+        localStorage.setItem("epic_active_user", JSON.stringify(profile));
         resolve(profile);
       } catch (err) {
         console.error("Auth verification error:", err);
