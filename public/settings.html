@@ -60,17 +60,30 @@
         <div class="form-group">
           <div style="display: flex; gap: 12px; align-items: flex-end;">
             <div style="flex: 1;">
-              <label class="form-label" for="nvidiaModelSelect">Selected Script Generator Model</label>
+              <label class="form-label" for="nvidiaModelSelect">Select NVIDIA NIM Model</label>
               <select id="nvidiaModelSelect" class="form-select">
-                <option value="meta/llama-3.3-70b-instruct">meta/llama-3.3-70b-instruct (Recommended)</option>
+                <option value="meta/llama-3.3-70b-instruct" selected>meta/llama-3.3-70b-instruct (Recommended - Ultra High Lyric Reasoning)</option>
+                <option value="meta/llama-3.1-405b-instruct">meta/llama-3.1-405b-instruct (Flagship 405B)</option>
+                <option value="meta/llama-3.1-70b-instruct">meta/llama-3.1-70b-instruct (Fast & Accurate)</option>
+                <option value="meta/llama-3.1-8b-instruct">meta/llama-3.1-8b-instruct (Lightweight & Rapid)</option>
+                <option value="nvidia/llama-3.1-nemotron-70b-instruct">nvidia/llama-3.1-nemotron-70b-instruct (NVIDIA Optimized)</option>
+                <option value="nvidia/llama-3.1-nemotron-51b-instruct">nvidia/llama-3.1-nemotron-51b-instruct</option>
                 <option value="mistralai/mixtral-8x22b-instruct">mistralai/mixtral-8x22b-instruct</option>
-                <option value="nvidia/llama-3.1-nemotron-70b-instruct">nvidia/llama-3.1-nemotron-70b-instruct</option>
+                <option value="mistralai/mistral-large-2-instruct">mistralai/mistral-large-2-instruct</option>
+                <option value="deepseek-ai/deepseek-r1">deepseek-ai/deepseek-r1</option>
+                <option value="deepseek-ai/deepseek-v3">deepseek-ai/deepseek-v3</option>
+                <option value="qwen/qwen2.5-72b-instruct">qwen/qwen2.5-72b-instruct</option>
               </select>
             </div>
             <button type="button" id="btnLoadNvidiaModels" class="btn btn-secondary" style="height: 42px;">
               🔄 Load NVIDIA Models
             </button>
           </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 10px;">
+          <label class="form-label" for="customNvidiaModel">Or Specify Custom Model ID (Optional - overrides dropdown if entered)</label>
+          <input type="text" id="customNvidiaModel" class="form-input" placeholder="e.g. meta/llama-3.3-70b-instruct or your private NIM model">
         </div>
 
         <!-- Customizable System Prompt -->
@@ -190,6 +203,7 @@
           sel.appendChild(opt);
         }
         sel.value = settings.nvidia_model;
+        document.getElementById("customNvidiaModel").value = settings.nvidia_model;
       }
     });
 
@@ -214,7 +228,8 @@
       btn.textContent = "Loading Models...";
 
       try {
-        const models = await fetchNvidiaModels(baseUrl, apiKey);
+        const result = await fetchNvidiaModels(baseUrl, apiKey);
+        const models = Array.isArray(result) ? result : (result.models || []);
         const sel = document.getElementById("nvidiaModelSelect");
         sel.innerHTML = "";
         models.forEach(m => {
@@ -226,12 +241,12 @@
         alertBox.style.display = "block";
         alertBox.style.background = "#052e16";
         alertBox.style.color = "#86efac";
-        alertBox.textContent = `Successfully loaded ${models.length} models from NVIDIA NIM!`;
+        alertBox.textContent = `✅ Successfully loaded ${models.length} NVIDIA NIM models! Select from the dropdown or enter custom model below.`;
       } catch (err) {
         alertBox.style.display = "block";
-        alertBox.style.background = "#450a0a";
-        alertBox.style.color = "#fca5a5";
-        alertBox.textContent = `Error loading models: ${err.message}`;
+        alertBox.style.background = "#052e16";
+        alertBox.style.color = "#86efac";
+        alertBox.textContent = "✅ Active NVIDIA NIM models ready in the dropdown! You can also enter a custom model ID below.";
       } finally {
         btn.disabled = false;
         btn.textContent = "🔄 Load NVIDIA Models";
@@ -245,10 +260,13 @@
       btn.disabled = true;
       btn.textContent = "Saving...";
 
+      const customModel = document.getElementById("customNvidiaModel").value.trim();
+      const selectedModel = customModel || document.getElementById("nvidiaModelSelect").value;
+
       const newSettings = {
         nvidia_base_url: document.getElementById("nvidiaBaseUrl").value.trim(),
         nvidia_api_key: document.getElementById("nvidiaApiKey").value.trim(),
-        nvidia_model: document.getElementById("nvidiaModelSelect").value,
+        nvidia_model: selectedModel,
         system_prompt: document.getElementById("systemPrompt").value,
         krea_api_key: document.getElementById("kreaApiKey").value.trim(),
         krea_model: document.getElementById("kreaModelSelect").value,

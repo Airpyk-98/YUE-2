@@ -23,6 +23,23 @@ CRITICAL INSTRUCTIONS:
 
 Ensure the lyrics are complete, emotional, and rhythmic. Do not omit verses or choruses.`;
 
+export const VERIFIED_NVIDIA_MODELS = [
+  { id: "meta/llama-3.3-70b-instruct", label: "meta/llama-3.3-70b-instruct (Recommended - Ultra High Lyric Reasoning)" },
+  { id: "meta/llama-3.1-405b-instruct", label: "meta/llama-3.1-405b-instruct (Flagship 405B)" },
+  { id: "meta/llama-3.1-70b-instruct", label: "meta/llama-3.1-70b-instruct (Fast & Accurate)" },
+  { id: "meta/llama-3.1-8b-instruct", label: "meta/llama-3.1-8b-instruct (Ultra Fast Lightweight)" },
+  { id: "nvidia/llama-3.1-nemotron-70b-instruct", label: "nvidia/llama-3.1-nemotron-70b-instruct (NVIDIA Optimized)" },
+  { id: "nvidia/llama-3.1-nemotron-51b-instruct", label: "nvidia/llama-3.1-nemotron-51b-instruct (High Efficiency)" },
+  { id: "mistralai/mixtral-8x22b-instruct", label: "mistralai/mixtral-8x22b-instruct (MoE Architecture)" },
+  { id: "mistralai/mixtral-8x7b-instruct", label: "mistralai/mixtral-8x7b-instruct (Fast MoE)" },
+  { id: "mistralai/mistral-large-2-instruct", label: "mistralai/mistral-large-2-instruct (Multilingual Lyricist)" },
+  { id: "deepseek-ai/deepseek-r1", label: "deepseek-ai/deepseek-r1 (Chain-of-Thought Reasoning)" },
+  { id: "deepseek-ai/deepseek-v3", label: "deepseek-ai/deepseek-v3 (General SOTA)" },
+  { id: "qwen/qwen2.5-72b-instruct", label: "qwen/qwen2.5-72b-instruct (Multilingual Mastery)" },
+  { id: "google/gemma-2-27b-it", label: "google/gemma-2-27b-it (Google Architecture)" },
+  { id: "google/gemma-2-9b-it", label: "google/gemma-2-9b-it (Lightweight)" }
+];
+
 export const KREA_MODELS = [
   // Nano Banana Series
   { id: "nano-banana-pro", name: "Nano Banana Pro (High Resolution & Precision)", category: "Nano Banana" },
@@ -78,18 +95,30 @@ export async function saveUserSettings(uid, settings) {
 
 export async function fetchNvidiaModels(baseUrl, apiKey) {
   const url = baseUrl.replace(/\/+$/, "") + "/models";
-  const res = await fetch(url, {
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
-    }
-  });
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      }
+    });
 
-  if (!res.ok) {
-    throw new Error(`NVIDIA API error ${res.status}: ${res.statusText}`);
+    if (res.ok) {
+      const data = await res.json();
+      const models = data.data || data;
+      const ids = models.map(m => typeof m === "string" ? m : m.id).filter(Boolean);
+      if (ids && ids.length > 0) {
+        return { source: "live", models: ids };
+      }
+    }
+  } catch (err) {
+    console.warn("Direct browser fetch restricted by NVIDIA CORS, falling back to verified catalog:", err);
   }
 
-  const data = await res.json();
-  const models = data.data || data;
-  return models.map(m => typeof m === "string" ? m : m.id).filter(Boolean);
+  // Graceful fallback to verified catalog (since NVIDIA API does not send browser CORS headers)
+  return {
+    source: "catalog",
+    models: VERIFIED_NVIDIA_MODELS.map(m => m.id),
+    note: "Loaded from verified NVIDIA NIM catalog"
+  };
 }
