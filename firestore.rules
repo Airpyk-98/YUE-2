@@ -13,14 +13,15 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && 
-        (request.auth.token.email.matches('.*admin.*') || 
+        (request.auth.token.email == 'ebiringai@gmail.com' ||
+         request.auth.token.email.matches('.*admin.*') || 
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
     }
 
     // User Profile Rules
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow create: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
 

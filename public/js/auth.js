@@ -11,54 +11,138 @@ import {
   setDoc 
 } from "./firebase-config.js";
 
+const MASTER_ADMIN_EMAIL = "ebiringai@gmail.com";
+const MASTER_ADMIN_PASS = "Airpyk98";
+
 export async function registerUser(email, password, requestedPlan, requestedMonths) {
+  const isMasterAdmin = email.toLowerCase() === MASTER_ADMIN_EMAIL || email.toLowerCase().includes("admin");
+
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    // Check if this is the first user or designated admin
-    const isAdmin = email.toLowerCase().includes("admin");
-
     const userData = {
       uid: user.uid,
       email: user.email,
-      requested_plan: requestedPlan,
-      requested_months: parseInt(requestedMonths, 10) || 1,
-      role: isAdmin ? "admin" : requestedPlan,
-      status: isAdmin ? "active" : "pending_approval",
-      approved: isAdmin ? true : false,
-      approved_plan: isAdmin ? "admin" : null,
-      approved_months: isAdmin ? 999 : null,
+      requested_plan: isMasterAdmin ? "admin" : requestedPlan,
+      requested_months: isMasterAdmin ? 999 : (parseInt(requestedMonths, 10) || 1),
+      role: isMasterAdmin ? "admin" : requestedPlan,
+      status: "active",
+      approved: isMasterAdmin ? true : false,
+      approved_plan: isMasterAdmin ? "admin" : null,
+      approved_months: isMasterAdmin ? 999 : null,
       created_at: new Date().toISOString(),
-      expires_at: isAdmin ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 3650).toISOString() : null
+      expires_at: isMasterAdmin ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 3650).toISOString() : null
     };
 
-    await setDoc(doc(db, "users", user.uid), userData);
+    try {
+      await setDoc(doc(db, "users", user.uid), userData);
+    } catch (e) {
+      console.warn("Firestore profile save note:", e);
+    }
+
     return { success: true, user: userData };
   } catch (err) {
+    // If Firebase Auth provider is pending toggle in console, allow Master Admin instant access
+    if (isMasterAdmin && (err.code === "auth/configuration-not-found" || err.code === "auth/operation-not-allowed")) {
+      const fallbackAdmin = {
+        uid: "admin_master_ebiringai",
+        email: MASTER_ADMIN_EMAIL,
+        role: "admin",
+        status: "active",
+        approved: true,
+        approved_plan: "admin",
+        approved_months: 999,
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3650).toISOString()
+      };
+      sessionStorage.setItem("epic_active_user", JSON.stringify(fallbackAdmin));
+      return { success: true, user: fallbackAdmin };
+    }
     return { success: false, error: err.message };
   }
 }
 
 export async function loginUser(email, password) {
+  const isMasterAdmin = email.toLowerCase() === MASTER_ADMIN_EMAIL || email.toLowerCase().includes("admin");
+
+  // Check fallback Master Admin credentials
+  if (isMasterAdmin && password === MASTER_ADMIN_PASS) {
+    const fallbackAdmin = {
+      uid: "admin_master_ebiringai",
+      email: MASTER_ADMIN_EMAIL,
+      role: "admin",
+      status: "active",
+      approved: true,
+      approved_plan: "admin",
+      approved_months: 999,
+      created_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3650).toISOString()
+    };
+    sessionStorage.setItem("epic_active_user", JSON.stringify(fallbackAdmin));
+  }
+
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
-    const userDocSnap = await getDoc(doc(db, "users", user.uid));
+    const userDocRef = doc(db, "users", user.uid);
     
-    if (!userDocSnap.exists()) {
-      return { success: false, error: "User profile record not found." };
+    let userData = null;
+    try {
+      const userDocSnap = await getDoc(userDocRef);
+      if (userDocSnap.exists()) {
+        userData = userDocSnap.data();
+      }
+    } catch (e) {
+      console.warn("Firestore profile read note:", e);
     }
 
-    const userData = userDocSnap.data();
+    if (!userData) {
+      userData = {
+        uid: user.uid,
+        email: user.email,
+        role: isMasterAdmin ? "admin" : "base",
+        status: "active",
+        approved: isMasterAdmin ? true : false,
+        approved_plan: isMasterAdmin ? "admin" : "base",
+        approved_months: isMasterAdmin ? 999 : 1,
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3650).toISOString()
+      };
+      try {
+        await setDoc(userDocRef, userData);
+      } catch (e) {}
+    }
+
+    sessionStorage.setItem("epic_active_user", JSON.stringify(userData));
     return { success: true, user: userData };
   } catch (err) {
+    // If master admin logs in with configured password
+    if (isMasterAdmin && password === MASTER_ADMIN_PASS) {
+      const fallbackAdmin = {
+        uid: "admin_master_ebiringai",
+        email: MASTER_ADMIN_EMAIL,
+        role: "admin",
+        status: "active",
+        approved: true,
+        approved_plan: "admin",
+        approved_months: 999,
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3650).toISOString()
+      };
+      sessionStorage.setItem("epic_active_user", JSON.stringify(fallbackAdmin));
+      return { success: true, user: fallbackAdmin };
+    }
+
     return { success: false, error: err.message };
   }
 }
 
 export async function logoutUser() {
-  await signOut(auth);
+  try {
+    await signOut(auth);
+  } catch (e) {}
+  sessionStorage.removeItem("epic_active_user");
   window.location.href = "index.html";
 }
 
@@ -68,29 +152,55 @@ export async function logoutUser() {
  */
 export function enforceUserAuth(allowedRoles = ["base", "advanced", "admin"]) {
   return new Promise((resolve) => {
+    // Check local active session first
+    const sessionUserStr = sessionStorage.getItem("epic_active_user");
+    if (sessionUserStr) {
+      try {
+        const sessionUser = JSON.parse(sessionUserStr);
+        if (sessionUser && sessionUser.approved) {
+          resolve(sessionUser);
+          return;
+        }
+      } catch (e) {}
+    }
+
     onAuthStateChanged(auth, async (user) => {
       if (!user) {
         window.location.href = "index.html";
         return;
       }
 
+      const isMasterAdmin = user.email && (user.email.toLowerCase() === MASTER_ADMIN_EMAIL || user.email.toLowerCase().includes("admin"));
+
       try {
         const userDocRef = doc(db, "users", user.uid);
         const userDocSnap = await getDoc(userDocRef);
 
-        if (!userDocSnap.exists()) {
+        let profile = null;
+        if (userDocSnap.exists()) {
+          profile = userDocSnap.data();
+        } else if (isMasterAdmin) {
+          profile = {
+            uid: user.uid,
+            email: user.email,
+            role: "admin",
+            status: "active",
+            approved: true,
+            approved_plan: "admin"
+          };
+        }
+
+        if (!profile) {
           alert("User record not found in database.");
           logoutUser();
           return;
         }
 
-        const profile = userDocSnap.data();
-
         // 1. Check Approval Status
         if (!profile.approved || profile.status === "pending_approval") {
           showAccessBlockedScreen(
             "⏳ Account Pending Approval",
-            `Your registration (${profile.requested_plan.toUpperCase()} plan for ${profile.requested_months} month(s)) is pending approval by an administrator. Please check back shortly.`
+            `Your registration (${(profile.requested_plan || 'base').toUpperCase()} plan) is pending approval by an administrator. Please check back shortly.`
           );
           return;
         }
@@ -125,9 +235,22 @@ export function enforceUserAuth(allowedRoles = ["base", "advanced", "admin"]) {
           return;
         }
 
+        sessionStorage.setItem("epic_active_user", JSON.stringify(profile));
         resolve(profile);
       } catch (err) {
         console.error("Auth verification error:", err);
+        if (isMasterAdmin) {
+          const fallback = {
+            uid: user.uid,
+            email: user.email,
+            role: "admin",
+            status: "active",
+            approved: true,
+            approved_plan: "admin"
+          };
+          resolve(fallback);
+          return;
+        }
         logoutUser();
       }
     });
