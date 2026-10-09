@@ -23,7 +23,7 @@ import requests
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("yue_worker")
 
-FIREBASE_PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID", "YOUR_FIREBASE_PROJECT_ID")
+FIREBASE_PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID", "epic-music-98")
 JOB_ID = os.environ.get("JOB_ID", "")
 HF_TOKEN = os.environ.get("HF_TOKEN", "")
 HF_DATASET_REPO = os.environ.get("HF_DATASET_REPO", "username/yue2-generated-assets")

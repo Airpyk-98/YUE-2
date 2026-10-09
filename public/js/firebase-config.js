@@ -22,18 +22,15 @@ import {
   serverTimestamp 
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// Read from localStorage or use default project configuration
-const savedConfig = localStorage.getItem("epic_firebase_config");
-const defaultFirebaseConfig = {
-  apiKey: "AIzaSyDemoKeyReplaceWithYours",
-  authDomain: "epic-yue2-automation.firebaseapp.com",
-  projectId: "epic-yue2-automation",
-  storageBucket: "epic-yue2-automation.appspot.com",
-  messagingSenderId: "1234567890",
-  appId: "1:1234567890:web:abcdef"
+// Live Firebase Project Configuration for Epic Music
+export const firebaseConfig = {
+  apiKey: "AIzaSyD4IYt-cfkbxn6ktc1gPStGYZtxij4AjbY",
+  authDomain: "epic-music-98.firebaseapp.com",
+  projectId: "epic-music-98",
+  storageBucket: "epic-music-98.firebasestorage.app",
+  messagingSenderId: "917981424080",
+  appId: "1:917981424080:web:43ff7fa676eeed363eb1d5"
 };
-
-export const firebaseConfig = savedConfig ? JSON.parse(savedConfig) : defaultFirebaseConfig;
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);

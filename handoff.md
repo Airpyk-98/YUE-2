@@ -20,6 +20,9 @@
 ## 2. Infrastructure & Component Architecture
 
 ### A. Frontend & User Roles (`public/`)
+- **Hosting URL**: `https://epic-music-98.web.app`
+- **Firebase Project ID**: `epic-music-98`
+- **Firebase Console**: `https://console.firebase.google.com/project/epic-music-98/overview`
 - **Authentication**: Firebase Authentication (Email/Password).
 - **Subscription Tiers**:
   - **Base Plan**: 1 song or 1 video at a time.
