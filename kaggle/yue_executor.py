@@ -317,39 +317,91 @@ def process_job(job_doc: dict):
     )
     logger.info("All pipeline tasks completed successfully.")
 
-def main():
-    watchdog = threading.Thread(target=cancellation_watchdog_loop, daemon=True)
-    watchdog.start()
+def decode_firestore_field(val):
+    if not isinstance(val, dict):
+        return val
+    if "stringValue" in val:
+        return val["stringValue"]
+    if "integerValue" in val:
+        return int(val["integerValue"])
+    if "booleanValue" in val:
+        return val["booleanValue"]
+    if "mapValue" in val:
+        fields = val.get("mapValue", {}).get("fields", {})
+        return {k: decode_firestore_field(v) for k, v in fields.items()}
+    if "arrayValue" in val:
+        values = val.get("arrayValue", {}).get("values", [])
+        return [decode_firestore_field(v) for v in values]
+    return val
 
-    # If running with Firestore integration: fetch job document
-    if FIREBASE_PROJECT_ID and JOB_ID:
+def decode_firestore_doc(raw_doc):
+    fields = raw_doc.get("fields", {})
+    return {k: decode_firestore_field(v) for k, v in fields.items()}
+
+def fetch_job_to_process():
+    global JOB_ID, HF_TOKEN, HF_DATASET_REPO
+    if JOB_ID:
         url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/automations/{JOB_ID}"
         try:
             resp = requests.get(url, timeout=10)
             if resp.status_code == 200:
-                raw_fields = resp.json().get("fields", {})
-                # Simple parser for Firestore JSON fields
-                mode = raw_fields.get("mode", {}).get("stringValue", "base")
-                get_video = raw_fields.get("get_video", {}).get("booleanValue", False)
-                job_doc = {
-                    "mode": mode,
-                    "get_video": get_video,
-                    "items": [{"title": "Demo Song", "auto_ai": True, "description": "Uplifting synthwave"}]
-                }
-                process_job(job_doc)
-                return
+                return decode_firestore_doc(resp.json())
         except Exception as e:
-            logger.warning(f"Could not load Firestore job doc: {e}. Running local benchmark mode.")
+            logger.warning(f"Could not load targeted JOB_ID {JOB_ID}: {e}")
 
-    # Local / Test Benchmark Mode
-    demo_doc = {
-        "mode": "base",
-        "get_video": True,
-        "nvidia_config": {},
-        "krea_config": {"model": "nano-banana-pro"},
-        "items": [{"title": "Cosmic Neon", "auto_ai": True, "description": "Synthwave space anthem"}]
-    }
-    process_job(demo_doc)
+    # Query Firestore for latest queued or running job
+    url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/automations"
+    try:
+        resp = requests.get(url, timeout=10)
+        if resp.status_code == 200:
+            docs = resp.json().get("documents", [])
+            active_jobs = []
+            for d in docs:
+                parsed = decode_firestore_doc(d)
+                if parsed.get("status") in ["queued", "running"]:
+                    active_jobs.append(parsed)
+            if active_jobs:
+                active_jobs.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+                target = active_jobs[0]
+                JOB_ID = target.get("job_id", "")
+                return target
+    except Exception as e:
+        logger.warning(f"Failed to query Firestore automations queue: {e}")
+
+    return None
+
+def main():
+    global JOB_ID, HF_TOKEN, HF_DATASET_REPO
+    job_doc = fetch_job_to_process()
+
+    if job_doc:
+        logger.info(f"Targeting Firestore job: {JOB_ID}")
+        hf_cfg = job_doc.get("hf_config", {})
+        if hf_cfg.get("token"):
+            HF_TOKEN = hf_cfg.get("token")
+        if hf_cfg.get("dataset_repo"):
+            HF_DATASET_REPO = hf_cfg.get("dataset_repo")
+
+        # Launch cancellation watchdog with confirmed JOB_ID
+        watchdog = threading.Thread(target=cancellation_watchdog_loop, daemon=True)
+        watchdog.start()
+
+        update_firestore(
+            progress_pct=5,
+            milestone_text="Kaggle T4 worker connected. Initializing generation models...",
+            status="running"
+        )
+        process_job(job_doc)
+    else:
+        logger.info("No queued jobs found in Firestore. Running local benchmark test.")
+        demo_doc = {
+            "mode": "base",
+            "get_video": True,
+            "nvidia_config": {},
+            "krea_config": {"model": "nano-banana-pro"},
+            "items": [{"title": "Cosmic Neon", "auto_ai": True, "description": "Synthwave space anthem"}]
+        }
+        process_job(demo_doc)
 
 if __name__ == "__main__":
     main()

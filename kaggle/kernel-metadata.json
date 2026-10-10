@@ -1,6 +1,6 @@
 {
-  "id": "YOUR_KAGGLE_USERNAME/yue2-automation-worker",
-  "title": "YuE-2 AI Music & Video Worker",
+  "id": "ikechukwuebiringa/yue2-music-worker",
+  "title": "YuE2 Music Worker",
   "code_file": "yue_executor.py",
   "language": "python",
   "kernel_type": "script",
