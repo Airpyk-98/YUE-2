@@ -70,10 +70,8 @@
 - [x] Built dynamic subtab generator for manual lyrics editing.
 - [x] Implemented "Get Video" feature integrating Krea.ai models (Nano Banana, SeedDream, ChatGPTS) with FFmpeg static looping.
 - [x] Built Kaggle T4 worker script (`kaggle/yue_executor.py`) with Firestore milestone sync and cancellation watchdog.
-- [x] Added `kaggle/dispatch_worker.py` for automated kernel configuration and submission.
-- [x] **Full 90+ NVIDIA NIM Model Catalog**: Extracted all 80 active models directly from NVIDIA NIM API and added 11 flagship community models into `VERIFIED_NVIDIA_MODELS`. Models populate immediately on settings load and via the loader button with graceful fallback preventing CORS errors.
-- [x] **In-App Kaggle & HF Credential Management**: Added dedicated input cards in `settings.html` for Kaggle Username, Kaggle API Token/Key, Hugging Face Token, and Dataset Repository. Credential values are persisted in Firestore `/users/{uid}/config/settings` and `localStorage`.
-- [x] **Dashboard Notice**: Implemented an automated banner in `dashboard.html` prompting users to set up Kaggle credentials if they haven't configured them yet.
+- [x] **Kaggle Automation Dispatcher Daemon (`kaggle/dispatch_worker.py`)**: Implemented a background listener polling Firestore `/automations` for jobs with `status: "queued"`. Automatically updates `kernel-metadata.json`, pushes the kernel to Kaggle via `kaggle kernels push -p kaggle`, and streams container boot milestones to Firestore.
+- [x] **Dynamic Firestore Job Resolution (`kaggle/yue_executor.py`)**: Worker running on Kaggle T4 automatically queries Firestore to resolve the active queued job, decodes structured items, extracts Hugging Face credentials, runs AI inference (NVIDIA LLM) directly inside Kaggle, and uploads final media.
 - [x] Deployed live to Firebase Hosting: `https://epic-music-98.web.app`.
 - [x] Synced code to GitHub repository `https://github.com/Airpyk-98/YUE-2.git`.
 
@@ -82,5 +80,5 @@
 ## 5. Instructions for Next Agent
 1. To view the live app: Open `https://epic-music-98.web.app`.
 2. Master Admin Account: `ebiringai@gmail.com` / `Airpyk98`.
-3. To test Kaggle worker locally or on a remote machine: Run `python kaggle/dispatch_worker.py <kaggle_username> <kaggle_key>`.
+3. The background dispatcher daemon is running via `python kaggle/dispatch_worker.py`. If restarting, run `python kaggle/dispatch_worker.py` to continuously listen and trigger Kaggle pushes when users launch tracks.
 4. Keep this `handoff.md` continuously updated as new features or model weights are added.
