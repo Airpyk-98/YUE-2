@@ -1,6 +1,7 @@
 // Studio Generation Engine (Base & Advanced Batch Multi-Title Studio)
 import { 
   db, 
+  auth,
   doc, 
   setDoc, 
   updateDoc, 
@@ -12,13 +13,14 @@ let unsubscribeCurrentJob = null;
 
 export async function dispatchAutomationJob(user, payload) {
   const jobId = "yue_" + Date.now();
-  const settings = await loadUserSettings(user.uid);
+  const effectiveUid = auth.currentUser ? auth.currentUser.uid : (user.uid === "admin_master_ebiringai" ? "IHnbUVOU5JYhUtYMZF9644WRrWC3" : (user.uid || "IHnbUVOU5JYhUtYMZF9644WRrWC3"));
+  const settings = await loadUserSettings(effectiveUid);
 
   const jobDoc = {
     job_id: jobId,
-    user_id: user.uid,
-    user_email: user.email,
-    plan_tier: user.approved_plan || user.role,
+    user_id: effectiveUid,
+    user_email: user.email || (auth.currentUser ? auth.currentUser.email : "ebiringai@gmail.com"),
+    plan_tier: user.approved_plan || user.role || "admin",
     mode: payload.mode, // "base" or "batch"
     get_video: payload.get_video,
     status: "queued",

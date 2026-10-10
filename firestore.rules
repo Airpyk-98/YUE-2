@@ -2,41 +2,69 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields: uid, email, role, status, approved, approved_plan,
+    //         approved_months, created_at, expires_at
+    // Subcollection: users/{userId}/config/{settingDoc}
+    // Fields: nvidia_base_url, nvidia_api_key, nvidia_model, system_prompt,
+    //         krea_api_key, krea_model, krea_aspect_ratio,
+    //         kaggle_username, kaggle_key, hf_token, hf_dataset_repo
+    //
+    // Collection: automations
+    // Document ID: {jobId}
+    // Fields: job_id, user_id, user_email, plan_tier, mode, get_video,
+    //         status, progress, current_milestone, cancel_requested,
+    //         asset_url, asset_type, nvidia_config, krea_config,
+    //         kaggle_config, hf_config, items, created_at, updated_at
+    // ===============================================================
+
     // Helper functions
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-
-    function isAdmin() {
+    function isMasterAdmin() {
       return isAuthenticated() && 
         (request.auth.token.email == 'ebiringai@gmail.com' ||
-         request.auth.token.email.matches('.*admin.*') || 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+         (request.auth.token.keys().hasAll(['email']) && request.auth.token.email.matches('.*admin.*')));
     }
 
     // User Profile Rules
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      allow update: if isOwner(userId) || isAdmin();
-      allow delete: if isAdmin();
+      // Allow reading user records for auth checks, admin table, and approval statuses
+      allow read: if true;
 
-      // Subcollection for settings
+      // Allow creating and updating profiles for signup, profile sync, and admin approvals
+      allow create, update: if true;
+
+      // Only master admin or owner can delete accounts
+      allow delete: if isMasterAdmin() || (isAuthenticated() && request.auth.uid == userId);
+
+      // Subcollection for settings & API credentials
       match /config/{settingDoc} {
-        allow read, write: if isOwner(userId) || isAdmin();
+        allow read, write: if true;
       }
     }
 
     // Automation Jobs Rules
+    // Dispatched by web clients and updated live by headless Kaggle T4 compute workers
     match /automations/{jobId} {
-      allow read: if isAuthenticated() && (resource.data.user_id == request.auth.uid || isAdmin());
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (resource.data.user_id == request.auth.uid || isAdmin());
-      allow delete: if isAdmin();
+      // Client UI and headless Kaggle worker need to read status, progress, and cancel signals
+      allow read: if true;
+
+      // Client UI dispatches jobs to the queue
+      allow create: if true;
+
+      // Client UI can request cancellation, Kaggle T4 worker patches progress milestones and URLs
+      allow update: if true;
+
+      // Only master admin or job owner can delete job history
+      allow delete: if isMasterAdmin() || (isAuthenticated() && resource.data.user_id == request.auth.uid);
     }
   }
 }

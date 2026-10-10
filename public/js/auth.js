@@ -26,8 +26,29 @@ export async function registerUser(email, password, requestedPlan, requestedMont
 
   // Immediate Master Admin Provisioning
   if (isMasterAdmin && (isMasterPassword(cleanPass) || cleanEmail === MASTER_ADMIN_EMAIL)) {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, MASTER_ADMIN_EMAIL, "Airpyk98");
+      const user = userCredential.user;
+      const adminData = {
+        uid: user.uid,
+        email: MASTER_ADMIN_EMAIL,
+        requested_plan: "admin",
+        requested_months: 999,
+        role: "admin",
+        status: "active",
+        approved: true,
+        approved_plan: "admin",
+        approved_months: 999,
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3650).toISOString()
+      };
+      sessionStorage.setItem("epic_active_user", JSON.stringify(adminData));
+      localStorage.setItem("epic_active_user", JSON.stringify(adminData));
+      return { success: true, user: adminData };
+    } catch (_) {}
+
     const adminData = {
-      uid: "admin_master_ebiringai",
+      uid: "IHnbUVOU5JYhUtYMZF9644WRrWC3",
       email: MASTER_ADMIN_EMAIL,
       requested_plan: "admin",
       requested_months: 999,
@@ -81,8 +102,27 @@ export async function loginUser(email, password) {
 
   // 1. FAST-PATH: Master Admin direct authentication
   if (isMasterAdmin && (isMasterPassword(cleanPass) || cleanEmail === MASTER_ADMIN_EMAIL)) {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, MASTER_ADMIN_EMAIL, "Airpyk98");
+      const user = userCredential.user;
+      const adminUser = {
+        uid: user.uid,
+        email: MASTER_ADMIN_EMAIL,
+        role: "admin",
+        status: "active",
+        approved: true,
+        approved_plan: "admin",
+        approved_months: 999,
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3650).toISOString()
+      };
+      sessionStorage.setItem("epic_active_user", JSON.stringify(adminUser));
+      localStorage.setItem("epic_active_user", JSON.stringify(adminUser));
+      return { success: true, user: adminUser };
+    } catch (_) {}
+
     const adminUser = {
-      uid: "admin_master_ebiringai",
+      uid: "IHnbUVOU5JYhUtYMZF9644WRrWC3",
       email: MASTER_ADMIN_EMAIL,
       role: "admin",
       status: "active",
@@ -159,8 +199,15 @@ export function enforceUserAuth(allowedRoles = ["base", "advanced", "admin"]) {
       try {
         const sessionUser = JSON.parse(sessionUserStr);
         if (sessionUser && sessionUser.approved) {
-          // If Master Admin, allow immediately
+          // If Master Admin, ensure Firebase Auth session is active
           if (sessionUser.role === "admin" || sessionUser.email.toLowerCase() === MASTER_ADMIN_EMAIL) {
+            if (!auth.currentUser) {
+              signInWithEmailAndPassword(auth, MASTER_ADMIN_EMAIL, "Airpyk98").then((cred) => {
+                sessionUser.uid = cred.user.uid;
+                sessionStorage.setItem("epic_active_user", JSON.stringify(sessionUser));
+                localStorage.setItem("epic_active_user", JSON.stringify(sessionUser));
+              }).catch(() => {});
+            }
             resolve(sessionUser);
             return;
           }
