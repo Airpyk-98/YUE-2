@@ -69,16 +69,16 @@
 - [x] Implemented multi-line title parser, single vs shared genre toggle, and conversational batch generator.
 - [x] Built dynamic subtab generator for manual lyrics editing.
 - [x] Implemented "Get Video" feature integrating Krea.ai models (Nano Banana, SeedDream, ChatGPTS) with FFmpeg static looping.
-- [x] Built Kaggle T4 worker script (`kaggle/yue_executor.py`) with Firestore milestone sync and cancellation watchdog.
-- [x] **Kaggle Automation Dispatcher Daemon (`kaggle/dispatch_worker.py`)**: Implemented a background listener polling Firestore `/automations` for jobs with `status: "queued"`. Automatically updates `kernel-metadata.json`, pushes the kernel to Kaggle via `kaggle kernels push -p kaggle`, and streams container boot milestones to Firestore.
-- [x] **Dynamic Firestore Job Resolution (`kaggle/yue_executor.py`)**: Worker running on Kaggle T4 automatically queries Firestore to resolve the active queued job, decodes structured items, extracts Hugging Face credentials, runs AI inference (NVIDIA LLM) directly inside Kaggle, and uploads final media.
-- [x] Deployed live to Firebase Hosting: `https://epic-music-98.web.app`.
-- [x] Synced code to GitHub repository `https://github.com/Airpyk-98/YUE-2.git`.
+- [x] **Direct Browser-to-Kaggle REST API Trigger (`public/js/kaggle-trigger.js`)**: Eliminated the need for local desktop daemons. Leveraging Kaggle's open CORS endpoint (`https://api.kaggle.com/v1/kernels.KernelsApiService/SaveKernel`), the web frontend directly dispatches jobs to Kaggle Tesla T4 GPU instances using the user's stored Kaggle API token.
+- [x] **In-Script Job Target Injection (`public/js/yue-worker-script.js`)**: Injects `JOB_ID` directly into the worker script before push, ensuring the Kaggle worker connects to the exact Firestore record immediately upon boot.
+- [x] **Resilient Multi-Model NVIDIA LLM Fallback**: Hardened `call_nvidia_llm_for_lyrics` in `yue_executor.py` with automated fallback to `openai/gpt-oss-20b` and `meta/llama-3.2-11b-vision-instruct`, self-healing JSON parser, and procedural lyric generation, preventing worker crashes from model deprecations.
+- [x] **Milestone Deduplication & UI Polish**: Prevented duplicate milestone log lines in `dashboard.html` terminal monitor.
+- [x] **End-to-End Verification**: Confirmed live job execution from web dispatch -> Kaggle GPU boot -> Firestore milestone stream (0% -> 100%) -> asset completion.
 
 ---
 
 ## 5. Instructions for Next Agent
 1. To view the live app: Open `https://epic-music-98.web.app`.
 2. Master Admin Account: `ebiringai@gmail.com` / `Airpyk98`.
-3. The background dispatcher daemon is running via `python kaggle/dispatch_worker.py`. If restarting, run `python kaggle/dispatch_worker.py` to continuously listen and trigger Kaggle pushes when users launch tracks.
+3. Kaggle execution is **fully autonomous from the web app**; users click "Launch Single Track" or "Launch Batch Automation" in the browser and Kaggle T4 runs automatically without needing a local daemon.
 4. Keep this `handoff.md` continuously updated as new features or model weights are added.
