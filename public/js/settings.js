@@ -26,20 +26,24 @@ Ensure the lyrics are complete, emotional, and rhythmic. Do not omit verses or c
 // Comprehensive catalog of all verified NVIDIA NIM models (including all 80+ live API models)
 export const VERIFIED_NVIDIA_MODELS = [
   {
+    "id": "openai/gpt-oss-20b",
+    "label": "openai/gpt-oss-20b (Recommended - Ultra-Fast Structured Lyrics)"
+  },
+  {
+    "id": "meta/llama-3.2-11b-vision-instruct",
+    "label": "meta/llama-3.2-11b-vision-instruct (Fast High-Precision Lyrics)"
+  },
+  {
+    "id": "z-ai/glm-5.3-flash",
+    "label": "z-ai/glm-5.3-flash (Reasoning Lyricist)"
+  },
+  {
     "id": "meta/llama-3.3-70b-instruct",
-    "label": "meta/llama-3.3-70b-instruct (Recommended - Flagship Lyric Reasoning)"
+    "label": "meta/llama-3.3-70b-instruct"
   },
   {
     "id": "nvidia/llama-3.1-nemotron-70b-instruct",
-    "label": "nvidia/llama-3.1-nemotron-70b-instruct (NVIDIA Optimized Nemotron)"
-  },
-  {
-    "id": "meta/llama-3.1-405b-instruct",
-    "label": "meta/llama-3.1-405b-instruct (Ultra 405B Flagship)"
-  },
-  {
-    "id": "meta/llama-3.1-70b-instruct",
-    "label": "meta/llama-3.1-70b-instruct"
+    "label": "nvidia/llama-3.1-nemotron-70b-instruct"
   },
   {
     "id": "mistralai/mistral-large-2-instruct",

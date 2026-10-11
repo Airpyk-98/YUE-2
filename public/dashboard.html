@@ -506,6 +506,7 @@
       const mediaOutput = document.getElementById("mediaOutputSection");
 
       btnCancel.disabled = false;
+      let lastLoggedMilestone = null;
 
       attachJobMonitor(jobId, {
         onUpdate: (data) => {
@@ -517,12 +518,15 @@
           progressPercentage.textContent = `${progress}%`;
           progressBar.style.width = `${progress}%`;
 
-          // Append log
-          const log = document.createElement("div");
-          log.className = "log-line " + (status === "failed" ? "error" : status === "completed" ? "success" : "system");
-          log.textContent = `[${new Date().toLocaleTimeString()}] ${milestone}`;
-          terminalBox.appendChild(log);
-          terminalBox.scrollTop = terminalBox.scrollHeight;
+          // Append log only if milestone changes
+          if (milestone !== lastLoggedMilestone) {
+            lastLoggedMilestone = milestone;
+            const log = document.createElement("div");
+            log.className = "log-line " + (status === "failed" ? "error" : status === "completed" ? "success" : "system");
+            log.textContent = `[${new Date().toLocaleTimeString()}] ${milestone}`;
+            terminalBox.appendChild(log);
+            terminalBox.scrollTop = terminalBox.scrollHeight;
+          }
 
           if (status === "cancelled") {
             btnCancel.disabled = true;

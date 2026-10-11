@@ -23,10 +23,14 @@ import requests
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("yue_worker")
 
-FIREBASE_PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID", "epic-music-98")
-JOB_ID = os.environ.get("JOB_ID", "")
-HF_TOKEN = os.environ.get("HF_TOKEN", "")
-HF_DATASET_REPO = os.environ.get("HF_DATASET_REPO", "username/yue2-generated-assets")
+if "FIREBASE_PROJECT_ID" not in globals() or not FIREBASE_PROJECT_ID:
+    FIREBASE_PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID", "epic-music-98")
+if "JOB_ID" not in globals() or not JOB_ID:
+    JOB_ID = os.environ.get("JOB_ID", "")
+if "HF_TOKEN" not in globals():
+    HF_TOKEN = os.environ.get("HF_TOKEN", "")
+if "HF_DATASET_REPO" not in globals():
+    HF_DATASET_REPO = os.environ.get("HF_DATASET_REPO", "username/yue2-generated-assets")
 
 cancel_event = threading.Event()
 active_subprocesses = []
@@ -96,54 +100,98 @@ def call_nvidia_llm_for_lyrics(item: dict, nvidia_config: dict) -> tuple:
     """
     Calls NVIDIA NIM API using custom system prompt to convert title/description
     into YuE-compatible structured lyrics ([verse], [chorus]) and genre tags.
+    Features automated multi-model fallback and self-healing JSON parser.
     """
-    base_url = nvidia_config.get("base_url") or "https://integrate.api.nvidia.com/v1"
+    title = item.get("title", "Song Title")
+    desc = item.get("description") or item.get("conversational_prompt", "")
+    
+    base_url = (nvidia_config.get("base_url") or "https://integrate.api.nvidia.com/v1").rstrip("/")
     api_key = nvidia_config.get("api_key")
-    model = nvidia_config.get("model") or "meta/llama-3.3-70b-instruct"
-    system_prompt = nvidia_config.get("system_prompt")
+    configured_model = nvidia_config.get("model") or "openai/gpt-oss-20b"
+    system_prompt = nvidia_config.get("system_prompt") or 'You are a world-class songwriter. Return JSON with schema {"songs": [{"title": "...", "genre": "...", "lyrics": "..."}]}'
+
+    # Default procedural fallback if no API key or all models fail
+    default_genre = f"{desc}, 120bpm" if desc else "inspiring uplifting indie pop, acoustic guitar, bright vocal, 120bpm"
+    default_lyrics = (
+        f"[verse]\n"
+        f"Waking up under morning skies\n"
+        f"Seeing the vision before our eyes\n"
+        f"Every step takes us further away\n"
+        f"Chasing the promise of a brighter day\n\n"
+        f"[chorus]\n"
+        f"{title}, shining so high\n"
+        f"Guiding our journey across the sky\n"
+        f"Through every shadow and every storm\n"
+        f"Holding the flame that keeps us warm\n\n"
+        f"[bridge]\n"
+        f"We will never turn back again\n"
+        f"This is where all the dreams begin\n\n"
+        f"[chorus]\n"
+        f"{title}, shining so high\n"
+        f"Guiding our journey across the sky\n\n"
+        f"[outro]\n"
+        f"Fading into the light"
+    )
 
     if not api_key:
-        logger.warning("NVIDIA API key not provided. Generating template lyrics.")
-        default_genre = "energetic uplifting indie pop, acoustic guitar, bright vocal, 120bpm"
-        default_lyrics = f"[verse]\nWaking up under morning light\nChasing the vision in the night\n\n[chorus]\n{item.get('title', 'Song Title')} shining bright\nWe keep moving through the night\n\n[outro]\nFading away"
+        logger.warning("NVIDIA API key not provided. Using structured template lyrics.")
         return default_genre, default_lyrics
 
-    user_prompt = f"Song Title: {item.get('title')}\nDescription / Guidance: {item.get('description') or item.get('conversational_prompt', '')}"
+    # Try configured model first, then proven reliable fallback models
+    candidate_models = [configured_model]
+    for fallback in ["openai/gpt-oss-20b", "meta/llama-3.2-11b-vision-instruct", "z-ai/glm-5.3-flash"]:
+        if fallback not in candidate_models:
+            candidate_models.append(fallback)
 
+    user_prompt = f"Song Title: {title}\nDescription / Guidance: {desc}"
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
-    payload = {
-        "model": model,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ],
-        "temperature": 0.7,
-        "max_tokens": 1024
-    }
 
-    endpoint = base_url.rstrip("/") + "/chat/completions"
-    resp = requests.post(endpoint, headers=headers, json=payload, timeout=30)
-    if resp.status_code != 200:
-        raise RuntimeError(f"NVIDIA API failed ({resp.status_code}): {resp.text}")
+    for model in candidate_models:
+        logger.info(f"Attempting NVIDIA LLM inference with model: {model}")
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            "temperature": 0.7,
+            "max_tokens": 1024
+        }
+        endpoint = f"{base_url}/chat/completions"
+        try:
+            resp = requests.post(endpoint, headers=headers, json=payload, timeout=25)
+            if resp.status_code == 200:
+                data = resp.json()
+                msg = data["choices"][0]["message"]
+                raw_content = msg.get("content") or msg.get("reasoning_content") or ""
+                
+                clean_json = raw_content.strip()
+                if "```json" in clean_json:
+                    clean_json = clean_json.split("```json")[1].split("```")[0].strip()
+                elif "```" in clean_json:
+                    clean_json = clean_json.split("```")[1].split("```")[0].strip()
+                
+                try:
+                    parsed = json.loads(clean_json)
+                    song_data = parsed["songs"][0] if "songs" in parsed and parsed["songs"] else parsed
+                    g = song_data.get("genre") or default_genre
+                    l = song_data.get("lyrics") or default_lyrics
+                    if g and l:
+                        logger.info(f"Successfully generated lyrics with {model}")
+                        return g, l
+                except Exception:
+                    if raw_content and len(raw_content) > 30:
+                        return default_genre, raw_content
+            else:
+                logger.warning(f"Model {model} returned HTTP {resp.status_code}: {resp.text[:120]}")
+        except Exception as e:
+            logger.warning(f"Model {model} attempt failed: {e}")
 
-    raw_content = resp.json()["choices"][0]["message"]["content"]
-    
-    # Parse JSON block
-    try:
-        clean_json = raw_content.strip()
-        if "```json" in clean_json:
-            clean_json = clean_json.split("```json")[1].split("```")[0].strip()
-        elif "```" in clean_json:
-            clean_json = clean_json.split("```")[1].split("```")[0].strip()
-        parsed = json.loads(clean_json)
-        song_data = parsed["songs"][0] if "songs" in parsed else parsed
-        return song_data.get("genre", "pop, acoustic, 120bpm"), song_data.get("lyrics", "[verse]\nLyrics...")
-    except Exception:
-        # Fallback regex or plain extraction
-        return "uplifting pop, modern synth, 120bpm", raw_content
+    logger.warning("All NVIDIA LLM model candidates exhausted. Falling back to structured default.")
+    return default_genre, default_lyrics
 
 def call_krea_ai_for_image(title: str, genre: str, krea_config: dict) -> str:
     """
